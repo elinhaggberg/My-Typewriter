@@ -9,7 +9,7 @@ import { initFolder } from "./folder.js";
 import { toast } from "./toast.js";
 import { initPreview } from "./preview.js";
 import { PLAY_MODES } from "./texts.js";
-import { makeExercise, finishExercise } from "./practice.js";
+import { makeExercise, finishExercise, newLetters, LEVELS } from "./practice.js";
 
 const $ = (s) => document.querySelector(s);
 const stage = $("#stage");
@@ -374,9 +374,27 @@ function setPracticeTarget(target) {
   practice = { chars: [...target], lines: layout(target) };
 }
 
+// The exercise goes after whatever is on the paper, with one blank line between.
+function after(text, exercise) {
+  if (!text) return exercise;
+  const trailing = text.length - text.replace(/\n+$/, "").length;
+  return text + "\n".repeat(Math.max(0, 2 - trailing)) + exercise;
+}
+
 function startPractice() {
-  const exercise = makeExercise(prefs.practice);
-  setPracticeTarget(doc.text ? `${doc.text}\n\n${exercise}` : exercise);
+  setPracticeTarget(after(doc.text, makeExercise(prefs.practice)));
+}
+
+function setLevel(level) {
+  prefs.practice = { ...prefs.practice, level, done: 0 };
+  store.setPrefs({ practice: prefs.practice });
+  clearHints();
+  startPractice(); // replaces the exercise that hasn't been typed yet
+  renderPaper();
+  paintLevels();
+  sound.pop();
+  toast(level === 1 ? `Bokstäver: ${newLetters(prefs.practice)}` : LEVELS[level]);
+  scheduleHints();
 }
 
 const keyName = (ch) => (ch === "\n" ? "return" : ch === " " ? "space" : ch.toUpperCase());
@@ -429,9 +447,12 @@ function finishPractice() {
   prefs.practice = progress;
   store.setPrefs({ practice: progress });
   sound.cheer();
-  toast(levelUp ? LEVEL_NAMES[progress.level] : "Bra jobbat! Alla ord är klara.");
+  if (levelUp) toast(LEVEL_NAMES[progress.level]);
+  else if (progress.level === 1) toast(`Bra jobbat! Nya bokstäver: ${newLetters(progress)}`);
+  else toast("Bra jobbat! Alla ord är klara.");
+  paintLevels();
   // Keep going: the next exercise starts after a blank line.
-  setPracticeTarget(`${practice.chars.join("")}\n\n${makeExercise(progress)}`);
+  setPracticeTarget(after(practice.chars.join(""), makeExercise(progress)));
 }
 
 function route(k) {
@@ -536,7 +557,23 @@ btnKeyboard.addEventListener("click", () => {
 paintKeyboard();
 
 // ---------- play menu ----------
+// Level buttons over the paper, only in practice mode.
+const levelsEl = $("#levels");
+levelsEl.innerHTML = Object.entries(LEVELS)
+  .map(([n, label]) => `<button type="button" data-level="${n}"><b>${n}</b><span>${label}</span></button>`)
+  .join("");
+levelsEl.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-level]");
+  if (b && practice) enqueue(() => setLevel(Number(b.dataset.level)));
+});
+function paintLevels() {
+  levelsEl.hidden = !practice;
+  const level = prefs.practice?.level ?? 1;
+  levelsEl.querySelectorAll("[data-level]").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.level) === level)));
+}
+
 function paintPlay() {
+  paintLevels();
   const current = practice ? "practice" : play?.mode || "";
   btnPlay.classList.toggle("active", Boolean(current));
   btnPlay.querySelector(".label").textContent = practice ? "Öva" : play ? PLAY_MODES[play.mode].label : "Lek";
@@ -568,9 +605,25 @@ playMenu.addEventListener("click", (e) => {
   if (!item) return;
   const mode = item.dataset.mode;
   clearHints();
+  let stashed = false;
   if (mode === "practice") {
     play = null;
-    if (!practice) startPractice();
+    if (!practice) {
+      startPractice();
+      if (hasContent()) {
+        // Practice starts on a fresh paper; the one in the machine goes to the folder.
+        stashed = true;
+        flush();
+        store.addSaved(doc);
+        folder.refresh();
+        enqueue(async () => {
+          sound.swoosh();
+          movePaper(offTop(), 420, "ease-in");
+          await wait(440);
+          await loadDoc(store.newDoc());
+        });
+      }
+    }
   } else {
     practice = null;
     startPlay(mode);
@@ -585,7 +638,9 @@ playMenu.addEventListener("click", (e) => {
   sound.pop();
   toast(
     practice
-      ? "Öva: skriv bokstäverna som syns på papperet!"
+      ? stashed
+        ? "Ditt papper ligger i mappen. Nu övar vi!"
+        : "Öva: skriv bokstäverna som syns på papperet!"
       : play
         ? `${PLAY_MODES[play.mode].label}: tryck på vilka tangenter som helst!`
         : "Nu skriver du själv igen"

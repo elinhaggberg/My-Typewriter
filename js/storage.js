@@ -100,7 +100,7 @@ export function emptyTrash() {
 }
 
 // ---------- preferences ----------
-const DEFAULT_PREFS = { sound: true, keyboard: true, caps: true, installHintDismissed: false, practice: { level: 1, done: 0 } };
+const DEFAULT_PREFS = { sound: true, keyboard: true, caps: true, installHintDismissed: false, practice: { level: 1, done: 0, lesson: 0 } };
 
 export function getPrefs() {
   return { ...DEFAULT_PREFS, ...readJSON(PREFS_KEY, {}) };

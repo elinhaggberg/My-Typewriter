@@ -234,6 +234,51 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
   color: var(--text-dim);
 }
 
+/* Practice level buttons, top right of the stage. */
+.levels {
+  position: absolute;
+  top: 8px;
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 252, 244, .85);
+  box-shadow: 0 1px 4px rgba(41, 34, 28, .08);
+}
+.levels[hidden] { display: none; }
+.levels button {
+  appearance: none;
+  border: 0;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  font: 600 14px/1 var(--font-ui);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.levels b {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--desk-2);
+  color: var(--text);
+  font-size: 13px;
+}
+.levels button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(41, 34, 28, .12); }
+.levels button[aria-pressed="true"] b { background: var(--machine-deep); color: #fff; }
+@media (max-width: 480px) {
+  .levels button span { display: none; }
+  .levels button { padding: 6px; }
+}
+
 .carriage {
   position: absolute;
   top: 0;
@@ -495,6 +540,21 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
     0 calc(var(--u) * .03) calc(var(--u) * .06) rgba(0, 0, 0, .2);
 }
 .keyboard.lower .key[data-char] { text-transform: lowercase; }
+
+/* The little bumps on F and J that fingers find without looking. */
+.key[data-char="F"], .key[data-char="J"] { position: relative; }
+.key[data-char="F"]::after, .key[data-char="J"]::after {
+  content: "";
+  position: absolute;
+  bottom: 16%;
+  left: 50%;
+  width: 26%;
+  height: calc(var(--u) * .045);
+  margin-left: -13%;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: .45;
+}
 
 /* Practice hints: first the row, then the key itself. */
 .kb-row.hint-row .key { box-shadow: 0 calc(var(--u) * .09) 0 var(--machine-deep), 0 0 0 calc(var(--u) * .08) rgba(255, 221, 140, .55); }
