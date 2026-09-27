@@ -1,2 +1,32 @@
-# My-Typewriter
-A simple typewriter simulator for iPad.
+# My Typewriter
+
+A little typewriter for small writers. Made for iPad, but it works on phones and computers too.
+Plain HTML/CSS/JS with no build step. It's a PWA, so it works offline and everything is saved locally on the device.
+
+- Type on the round on-screen keys (Swedish layout, ABC/abc toggle) or on a connected keyboard.
+- The carriage slides as you type. A bell rings near the end of the line, and the carriage returns by itself at the margin (or with the red lever / return key).
+- A paper holds 36 × 22 characters. When it's full, the next page feeds in, so one paper can have several pages.
+- **Spara** moves the paper into the folder. **Släng** crumples it into the trash, which you can undo (the trash keeps papers for 30 days).
+- In the folder: *Skriv vidare* (continue writing), *Spara som bild* (one PNG per page) and *Spara som text* (.txt). On iPad these open the share sheet: Save Image, Save to Files, AirDrop…
+
+## Good to know
+
+- **Add it to the Home Screen** (Share → Add to Home Screen). Safari may clear data for websites that haven't been visited for 7 days, but Home Screen apps are exempt. Safari and the Home Screen app also keep separate storage.
+- The sounds are synthesized with Web Audio (no audio files). The iPad's silent switch mutes them.
+- When you release a new version, bump `VERSION` in `sw.js` so installed apps pick up the new files.
+
+## Files
+
+| | |
+|---|---|
+| `js/app.js` | typewriter: carriage, pages, save / trash flows |
+| `js/layout.js` | paper grid (columns, rows, margins) |
+| `js/ink.js` | deterministic uneven ink per character |
+| `js/keyboard.js` | on-screen keyboard |
+| `js/sound.js` | synthesized typewriter sounds |
+| `js/crumple.js` | crumple + toss animation |
+| `js/folder.js` | folder, trash and detail views |
+| `js/export.js` | PNG / TXT export and sharing |
+| `js/storage.js` | localStorage (`mt_*` keys) |
+
+Font: [Special Elite](https://fonts.google.com/specimen/Special+Elite) (Apache 2.0), bundled in `fonts/`.

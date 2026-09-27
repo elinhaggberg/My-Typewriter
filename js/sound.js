@@ -1,0 +1,167 @@
+// All sounds are synthesized with Web Audio -- no audio files to download
+// or cache. iOS only allows audio after a user gesture, so unlock() is
+// called on the first tap/keypress. (The iPad's silent switch still mutes it.)
+
+let ctx = null;
+let out = null;
+let noise = null;
+let enabled = true;
+
+export function setEnabled(value) {
+  enabled = value;
+}
+
+export function unlock() {
+  try {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ctx = new AC();
+      const comp = ctx.createDynamicsCompressor();
+      out = ctx.createGain();
+      out.gain.value = 0.9;
+      out.connect(comp);
+      comp.connect(ctx.destination);
+      noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const data = noise.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state !== "running") ctx.resume();
+  } catch {
+    // no sound is fine
+  }
+}
+
+const ready = () => enabled && ctx && ctx.state === "running";
+const vary = (v, amount) => v * (1 + (Math.random() * 2 - 1) * amount);
+
+function burst(t, { dur, freq, freqEnd, q = 1, gain, type = "bandpass", attack = 0.001 }) {
+  const src = ctx.createBufferSource();
+  src.buffer = noise;
+  const filter = ctx.createBiquadFilter();
+  filter.type = type;
+  filter.frequency.setValueAtTime(freq, t);
+  if (freqEnd) filter.frequency.exponentialRampToValueAtTime(freqEnd, t + dur);
+  filter.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(gain, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(filter);
+  filter.connect(g);
+  g.connect(out);
+  src.start(t, Math.random() * 0.5);
+  src.stop(t + dur + 0.02);
+}
+
+function tone(t, { freq, freqEnd, dur, gain, type = "sine", attack = 0.002 }) {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t + dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(gain, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g);
+  g.connect(out);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+}
+
+function ratchet(t, count, span, gain = 0.16) {
+  for (let i = 0; i < count; i++) {
+    burst(t + (i / count) * span, { dur: 0.014, freq: vary(4200, 0.12), q: 3, gain: vary(gain, 0.2) });
+  }
+}
+
+export function key() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  burst(t, { dur: 0.035, freq: vary(3200, 0.15), q: 0.9, gain: 0.55 });
+  burst(t + 0.004, { dur: 0.06, freq: vary(900, 0.1), q: 1.2, gain: 0.35 });
+  tone(t, { freq: vary(150, 0.1), freqEnd: 70, dur: 0.07, gain: 0.35, type: "triangle" });
+  burst(t + 0.05, { dur: 0.02, freq: 5500, q: 2, gain: 0.1 });
+}
+
+export function space() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  burst(t, { dur: 0.05, freq: vary(1300, 0.1), q: 0.8, gain: 0.3 });
+  tone(t, { freq: 95, freqEnd: 60, dur: 0.09, gain: 0.35, type: "triangle" });
+}
+
+export function back() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  burst(t, { dur: 0.03, freq: vary(2300, 0.1), q: 1, gain: 0.3 });
+  tone(t, { freq: 190, freqEnd: 110, dur: 0.05, gain: 0.25, type: "triangle" });
+}
+
+export function thunk() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  tone(t, { freq: 85, freqEnd: 55, dur: 0.09, gain: 0.35, type: "triangle" });
+}
+
+export function bell() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.03;
+  burst(t, { dur: 0.012, freq: 6000, q: 2, gain: 0.2 });
+  tone(t, { freq: 1760, dur: 1.5, gain: 0.32 });
+  tone(t, { freq: 1760 * 2.76, dur: 0.8, gain: 0.12 });
+  tone(t, { freq: 1760 * 5.4, dur: 0.35, gain: 0.05 });
+}
+
+// distance: 0..1 of a full line, longer returns zip for longer.
+export function carriageReturn(distance = 1) {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  const span = 0.12 + 0.3 * distance;
+  ratchet(t, 2, 0.05, 0.22); // line feed
+  ratchet(t + 0.05, Math.round(3 + 12 * distance), span, 0.12);
+  burst(t + 0.04, { dur: span + 0.05, freq: 900, q: 0.6, gain: 0.1, type: "lowpass", attack: 0.03 });
+  tone(t + 0.05 + span, { freq: 115, freqEnd: 60, dur: 0.14, gain: 0.5, type: "triangle" });
+  burst(t + 0.05 + span, { dur: 0.06, freq: 1800, q: 1, gain: 0.35 });
+}
+
+export function feed(duration = 0.55) {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  ratchet(t, 10, duration, 0.12);
+  burst(t, { dur: duration, freq: 3500, q: 0.5, gain: 0.05, attack: 0.1 });
+}
+
+export function swoosh() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  burst(t, { dur: 0.5, freq: 700, freqEnd: 4200, q: 0.8, gain: 0.3, attack: 0.12 });
+}
+
+export function crumple() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  for (let i = 0; i < 38; i++) {
+    const at = t + Math.pow(Math.random(), 1.4) * 0.65;
+    burst(at, {
+      dur: 0.01 + Math.random() * 0.04,
+      freq: 700 + Math.random() * 6500,
+      q: 1 + Math.random() * 3,
+      gain: 0.08 + Math.random() * 0.25,
+    });
+  }
+  burst(t, { dur: 0.65, freq: 1600, q: 0.5, gain: 0.12, type: "lowpass", attack: 0.05 });
+}
+
+export function toss() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  tone(t, { freq: 120, freqEnd: 70, dur: 0.12, gain: 0.35, type: "triangle" });
+  burst(t, { dur: 0.08, freq: 600, q: 0.8, gain: 0.25 });
+}
+
+export function pop() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  tone(t, { freq: 520, freqEnd: 880, dur: 0.08, gain: 0.15 });
+}

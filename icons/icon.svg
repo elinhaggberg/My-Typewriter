@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#29221c"/>
+  <!-- paper -->
+  <rect x="146" y="86" width="220" height="230" rx="6" fill="#f6f1e4"/>
+  <rect x="180" y="132" width="120" height="16" rx="8" fill="#29221c"/>
+  <rect x="180" y="172" width="150" height="16" rx="8" fill="#29221c"/>
+  <rect x="180" y="212" width="90" height="16" rx="8" fill="#29221c"/>
+  <!-- roller -->
+  <rect x="96" y="290" width="320" height="40" rx="20" fill="#8b8272"/>
+  <circle cx="96" cy="310" r="30" fill="#f6f1e4"/>
+  <circle cx="416" cy="310" r="30" fill="#f6f1e4"/>
+  <!-- body -->
+  <path d="M128 346h256l34 80a18 18 0 0 1-17 24H111a18 18 0 0 1-17-24z" fill="#f6f1e4"/>
+  <g fill="#29221c">
+    <circle cx="166" cy="384" r="12"/><circle cx="206" cy="384" r="12"/><circle cx="246" cy="384" r="12"/><circle cx="286" cy="384" r="12"/><circle cx="326" cy="384" r="12"/>
+    <rect x="186" y="412" width="140" height="18" rx="9"/>
+  </g>
+</svg>

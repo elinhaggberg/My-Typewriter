@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#f3ead6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Typewriter">
+  <meta name="description" content="A little typewriter for small writers. Works offline, saves locally.">
+  <title>My Typewriter</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preload" href="fonts/special-elite-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="toolbar">
+      <button class="tool" id="btn-folder" aria-label="Öppna mappen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.6l2 2h7.4A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" fill="currentColor" opacity=".18"/><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.6l2 2h7.4A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <span class="label">Mappen</span>
+        <span class="badge" id="folder-count" hidden></span>
+      </button>
+      <div class="spacer"></div>
+      <button class="tool icon-only" id="btn-keyboard" aria-label="Visa eller dölj tangentbordet" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M8 14h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tool icon-only" id="btn-sound" aria-label="Ljud på eller av" aria-pressed="true">
+        <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg class="off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tool" id="btn-trash" aria-label="Släng papperet">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 8h13l-1.2 11.2a2 2 0 0 1-2 1.8H8.7a2 2 0 0 1-2-1.8z" fill="currentColor" opacity=".18"/><path d="M5.5 8h13l-1.2 11.2a2 2 0 0 1-2 1.8H8.7a2 2 0 0 1-2-1.8zM4 5.5h16M9.5 5.5V4h5v1.5M10 11.5v6M14 11.5v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="label">Släng</span>
+      </button>
+      <button class="tool primary" id="btn-save" aria-label="Spara papperet i mappen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="label">Spara</span>
+      </button>
+    </header>
+
+    <main class="stage" id="stage">
+      <div class="page-tag" id="page-tag" hidden></div>
+      <div class="carriage" id="carriage">
+        <div class="paper-rest"></div>
+        <div class="paper" id="paper"></div>
+        <div class="roller"><span class="knob left"></span><span class="knob right"></span></div>
+        <button class="lever" id="lever" aria-label="Ny rad"><span class="rod"></span><span class="ball"></span></button>
+      </div>
+      <div class="typeguide" id="typeguide" aria-hidden="true"><span class="ribbon"></span></div>
+    </main>
+
+    <section class="machine" id="machine">
+      <div class="nameplate" aria-hidden="true">My Typewriter</div>
+      <div class="keyboard" id="keyboard" aria-label="Tangentbord"></div>
+    </section>
+  </div>
+
+  <section class="sheet" id="folder" role="dialog" aria-modal="true" aria-label="Mappen" hidden>
+    <header class="sheet-head">
+      <button class="tool icon-only" id="folder-close" aria-label="Stäng mappen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="saved" aria-selected="true">Sparade <span class="count" id="count-saved"></span></button>
+        <button role="tab" data-tab="trash" aria-selected="false">Papperskorgen <span class="count" id="count-trash"></span></button>
+      </div>
+      <div class="spacer"></div>
+    </header>
+    <div class="sheet-body" id="folder-body"></div>
+  </section>
+
+  <section class="sheet detail" id="detail" role="dialog" aria-modal="true" aria-label="Papper" hidden>
+    <header class="sheet-head">
+      <button class="tool" id="detail-back" aria-label="Tillbaka till mappen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="label">Mappen</span>
+      </button>
+      <div class="detail-title" id="detail-title"></div>
+    </header>
+    <div class="actions" id="detail-actions"></div>
+    <div class="sheet-body pages" id="detail-pages"></div>
+  </section>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
