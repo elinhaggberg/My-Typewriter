@@ -8,7 +8,7 @@ Plain HTML/CSS/JS with no build step. It's a PWA, so it works offline and everyt
 - A paper holds 36 × 22 characters. When it's full, the next page feeds in, so one paper can have several pages.
 - **Spara** moves the paper into the folder. **Släng** crumples it into the trash, which you can undo (the trash keeps papers for 30 days).
 - **Titta** zooms the paper up so the whole thing (all pages) can be read; tap outside or ✕ to put it back.
-- **Lek** (play mode): every key types the next letter of a ready-made silly text: *Författare*, *Jobb*, *Forskare* (volcano researcher) or *Brev*. The texts live in `js/texts.js`.
+- **Lek** (play mode): every key types the next letter of a ready-made silly text: *Författare*, *Jobb*, *Forskare* (serious volcano research notes) or *Brev*. The texts live in `js/texts.js`.
 - In the folder: *Skriv vidare* (continue writing), *Spara som bild* (one PNG per page) and *Spara som text* (.txt). On iPad these open the share sheet: Save Image, Save to Files, AirDrop…
 
 ## Good to know

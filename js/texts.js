@@ -23,9 +23,9 @@ export const PLAY_MODES = {
     label: "Forskare",
     hint: "Vulkanforskarens anteckningar",
     texts: [
-      "FORSKARDAGBOK, DAG 1\n\nIdag klättrade jag upp på vulkanen Bubbelberget. Det luktade ägg och varm korv.\n\nJag stoppade ner en termometer i lavan. Den smälte. Lavan är alltså väldigt varm.\n\nSlutsats: Ta med en längre termometer imorgon. Och en glass.",
-      "RAPPORT: VARFÖR VULKANER NYSER\n\nEn vulkan är ett berg med en het soppa inuti. Soppan heter magma.\n\nNär magman blir för kittlig nyser vulkanen. Då sprutar det ut lava, aska och ibland en förvånad get.\n\nJag rekommenderar att ingen kittlar vulkaner.\n\nUnderskrift: Vulkanforskaren",
-      "PACKLISTA TILL VULKANEN\n\n- Hjälm\n- Skyddsglasögon\n- Värmetåliga stövlar\n- En hink för lavaprover\n- Tre mackor med ost\n- En gosedjursdrake som hjälpreda\n\nOBS! Lava får INTE tas med hem i fickan. Mamma säger nej.",
+      "FÄLTANTECKNINGAR\nPlats: Island\n\nIdag undersökte jag ett lavafält. Lavan hade stelnat och var svart och full av små hål. Hålen kommer från gasbubblor som fastnade när lavan svalnade.\n\nJag mätte marken med en GPS. Marken har höjt sig lite sedan förra mätningen. Det kan betyda att magma samlas under jorden.\n\nNästa steg: Mäta igen imorgon och jämföra.",
+      "RAPPORT: VAD ÄR EN VULKAN?\n\nDjupt under marken är det så varmt att sten smälter. Smält sten under jorden kallas magma. När den kommer upp till ytan kallas den lava.\n\nLava kan vara över 1000 grader varm.\n\nIsland ligger där två jordplattor glider isär, ungefär 2 centimeter varje år. Där kan magma ta sig upp. Därför finns det många vulkaner på Island.",
+      "UTRUSTNING FÖR VULKANFORSKNING\n\n- Hjälm mot fallande sten\n- Gasmask mot farliga gaser\n- Seismometer som mäter jordskalv\n- GPS som mäter om marken rör sig\n- Gasmätare för svaveldioxid\n- Anteckningsbok och penna\n\nVIKTIGT: En vulkanforskare arbetar alltid tillsammans med andra och håller säkert avstånd.",
     ],
   },
   letter: {
