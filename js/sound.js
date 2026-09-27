@@ -178,3 +178,20 @@ export function pop() {
   const t = ctx.currentTime;
   tone(t, { freq: 520, freqEnd: 880, dur: 0.08, gain: 0.15 });
 }
+
+// A finished practice word: the stamp lands, then a small two-note chime.
+export function stamp() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  tone(t, { freq: 170, freqEnd: 110, dur: 0.08, gain: 0.14, type: "sine" });
+  burst(t, { dur: 0.05, freq: 900, q: 0.8, gain: 0.14, attack: 0.003 });
+  tone(t + 0.12, { freq: 1047, dur: 0.35, gain: 0.12, attack: 0.005 });
+  tone(t + 0.22, { freq: 1319, dur: 0.55, gain: 0.12, attack: 0.005 });
+}
+
+// A whole exercise done: a little rising arpeggio.
+export function cheer() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.35;
+  [1047, 1319, 1568, 2093].forEach((f, k) => tone(t + k * 0.1, { freq: f, dur: 0.5, gain: 0.1, attack: 0.005 }));
+}

@@ -1,6 +1,6 @@
 // Offline support: the whole app is precached. Bump VERSION on every
 // release so devices pick up the new files.
-const VERSION = "mt-v6";
+const VERSION = "mt-v7";
 const FILES = [
   "./",
   "index.html",
@@ -12,6 +12,7 @@ const FILES = [
   "js/folder.js",
   "js/ink.js",
   "js/keyboard.js",
+  "js/practice.js",
   "js/preview.js",
   "js/texts.js",
   "js/layout.js",

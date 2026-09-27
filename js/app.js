@@ -1,7 +1,7 @@
 import * as store from "./storage.js";
 import { COLS, ROWS, BELL_AT, CW, LH, MX, MT, PAPER_H, layout, cursorOf, pageOf } from "./layout.js";
 import { hashString } from "./ink.js";
-import { pageHTML } from "./render.js";
+import { pageHTML, pageStamps } from "./render.js";
 import * as sound from "./sound.js";
 import { buildKeyboard, KEYBOARD_UNITS } from "./keyboard.js";
 import { crumple } from "./crumple.js";
@@ -9,6 +9,7 @@ import { initFolder } from "./folder.js";
 import { toast } from "./toast.js";
 import { initPreview } from "./preview.js";
 import { PLAY_MODES } from "./texts.js";
+import { makeExercise, finishExercise } from "./practice.js";
 
 const $ = (s) => document.querySelector(s);
 const stage = $("#stage");
@@ -100,9 +101,17 @@ function place(msX = 70, msY = 160) {
 }
 
 // ---------- rendering ----------
-function renderPaper(strikeIndex = -1) {
+function renderPaper(strikeIndex = -1, freshStamp = -1) {
   const start = shownPage * ROWS;
-  paper.innerHTML = pageHTML(lines.slice(start, start + ROWS), seed, strikeIndex);
+  // In practice mode the page shows the whole exercise, with the untyped part as ghost letters.
+  const src = practice ? practice.lines : lines;
+  paper.innerHTML = pageHTML(src.slice(start, start + ROWS), seed, {
+    strikeIndex,
+    ghostFrom: practice ? length : Infinity,
+    stamps: pageStamps(doc.stamps, shownPage),
+    freshStamp: freshStamp >= 0 ? freshStamp - start : -1,
+    pageStart: start,
+  });
   const pages = Math.max(pageOf(cursor.row), pageOf(lines.length - 1)) + 1;
   pageTag.hidden = pages < 2;
   pageTag.textContent = `Sida ${shownPage + 1}`;
@@ -154,6 +163,7 @@ function carriageReturn() {
   doc.text += "\n";
   relayout();
   persist();
+  if (practice) renderPaper();
   return lineChange(fromCol, 0);
 }
 
@@ -178,9 +188,11 @@ function backspace() {
     return;
   }
   const chars = [...doc.text];
-  chars.pop();
+  const removed = chars.pop();
   doc.text = chars.join("");
   relayout();
+  // A word that's no longer finished loses its stamp.
+  if (doc.stamps?.length) doc.stamps = doc.stamps.filter((r) => r < cursor.row || (r === cursor.row && removed === "\n"));
   persist();
   sound.back();
   const p = pageOf(cursor.row);
@@ -212,6 +224,7 @@ async function feedTo(page) {
 async function loadDoc(next) {
   doc = next;
   if (play) nextPlayText();
+  if (practice) startPractice();
   seed = hashString(doc.id);
   relayout();
   flush();
@@ -224,6 +237,7 @@ async function loadDoc(next) {
   sound.feed(0.6);
   movePaper(paperY(cursor.row - shownPage * ROWS), 650, "cubic-bezier(.2,.8,.25,1)");
   await wait(650);
+  if (practice) scheduleHints();
 }
 
 // The part of the stage where the paper shows, above the roller.
@@ -346,25 +360,110 @@ function playStep() {
   return ch === "\n" ? carriageReturn() : typeChar(ch);
 }
 
-const press = (ch) => enqueue(() => (play ? playStep() : typeChar(ch)));
-const pressReturn = () => enqueue(() => (play ? playStep() : carriageReturn()));
+// ---------- practice ("Öva") ----------
+// Ghost letters on the paper to type over, one word per line. Only the right
+// key types; every finished word gets a stamp. Hints glow on the on-screen
+// keyboard only -- with a hardware keyboard she's on her own.
+let practice = null; // { chars, lines } for the whole target text
+let lastInput = "screen";
+let wrongs = 0;
+let hintTimers = [];
+const LEVEL_NAMES = { 2: "Nu blir det ord!", 3: "Nu blir det långa ord!" };
+
+function setPracticeTarget(target) {
+  practice = { chars: [...target], lines: layout(target) };
+}
+
+function startPractice() {
+  const exercise = makeExercise(prefs.practice);
+  setPracticeTarget(doc.text ? `${doc.text}\n\n${exercise}` : exercise);
+}
+
+const keyName = (ch) => (ch === "\n" ? "return" : ch === " " ? "space" : ch.toUpperCase());
+
+function clearHints() {
+  hintTimers.forEach(clearTimeout);
+  hintTimers = [];
+  keyboard.hint(null);
+}
+
+function scheduleHints() {
+  clearHints();
+  if (!practice || lastInput !== "screen") return;
+  const key = keyName(practice.chars[length]);
+  hintTimers = [setTimeout(() => keyboard.hint(key, "row"), 2500), setTimeout(() => keyboard.hint(key, "key"), 5000)];
+}
+
+function practiceKey(k) {
+  const expected = practice.chars[length];
+  const ok = expected === "\n" ? k === "\n" : k !== "\n" && k.toUpperCase() === expected.toUpperCase();
+  if (!ok) {
+    sound.thunk();
+    if (++wrongs >= 2 && lastInput === "screen") keyboard.hint(keyName(expected), "key");
+    return;
+  }
+  wrongs = 0;
+  clearHints();
+  const next = practice.chars[length + 1];
+  let result;
+  if (expected === "\n") {
+    result = carriageReturn();
+  } else {
+    result = typeChar(expected);
+    if (expected !== " " && (next === "\n" || next === undefined)) stampWord();
+  }
+  if (length >= practice.chars.length) finishPractice();
+  return Promise.resolve(result).then(() => practice && scheduleHints());
+}
+
+function stampWord() {
+  const row = lines.length - 1; // the line the last letter landed on
+  doc.stamps = [...(doc.stamps || []).filter((r) => r !== row), row];
+  persist();
+  renderPaper(length - 1, row);
+  setTimeout(() => sound.stamp(), 90);
+}
+
+function finishPractice() {
+  const { progress, levelUp } = finishExercise(prefs.practice);
+  prefs.practice = progress;
+  store.setPrefs({ practice: progress });
+  sound.cheer();
+  toast(levelUp ? LEVEL_NAMES[progress.level] : "Bra jobbat! Alla ord är klara.");
+  // Keep going: the next exercise starts after a blank line.
+  setPracticeTarget(`${practice.chars.join("")}\n\n${makeExercise(progress)}`);
+}
+
+function route(k) {
+  if (practice) return practiceKey(k);
+  if (play) return playStep();
+  return k === "\n" ? carriageReturn() : typeChar(k);
+}
+
+const press = (ch) => enqueue(() => route(ch));
+const pressReturn = () => enqueue(() => route("\n"));
 const pressBack = () =>
   enqueue(() => {
     if (play && play.pos > 0 && doc.text) play.pos--;
-    return backspace();
+    backspace();
+    if (practice) scheduleHints();
   });
 
 // ---------- preview ----------
 const preview = initPreview({ onOpen: () => sound.swoosh() });
 btnPreview.addEventListener("click", () =>
-  enqueue(() => preview.open({ text: doc.text, seed, page: shownPage, paper, area: paperArea() }))
+  enqueue(() => preview.open({ text: doc.text, seed, stamps: doc.stamps, page: shownPage, paper, area: paperArea() }))
 );
 
 // ---------- keyboard ----------
+const onScreen = (fn) => (...args) => {
+  lastInput = "screen";
+  fn(...args);
+};
 const keyboard = buildKeyboard($("#keyboard"), {
-  onChar: press,
-  onBack: pressBack,
-  onReturn: pressReturn,
+  onChar: onScreen(press),
+  onBack: onScreen(pressBack),
+  onReturn: onScreen(pressReturn),
   caps: prefs.caps,
   onCapsChange: (caps) => store.setPrefs({ caps }),
 });
@@ -382,6 +481,10 @@ window.addEventListener("keydown", (e) => {
     return;
   }
   if (e.metaKey || e.ctrlKey) return;
+  if (lastInput !== "hw" && (e.key.length === 1 || e.key === "Enter" || e.key === "Backspace")) {
+    lastInput = "hw";
+    if (practice) clearHints();
+  }
   if (e.key === "Backspace") {
     e.preventDefault();
     keyboard.flash("back");
@@ -405,7 +508,7 @@ btnTrash.addEventListener("click", () => enqueue(trashPaper));
 btnFolder.addEventListener("click", () => folder.open());
 $("#lever").addEventListener("pointerdown", (e) => {
   e.preventDefault();
-  enqueue(carriageReturn);
+  enqueue(() => (practice ? practiceKey("\n") : carriageReturn()));
 });
 
 function paintSound() {
@@ -434,12 +537,17 @@ paintKeyboard();
 
 // ---------- play menu ----------
 function paintPlay() {
-  btnPlay.classList.toggle("active", Boolean(play));
-  btnPlay.querySelector(".label").textContent = play ? PLAY_MODES[play.mode].label : "Lek";
-  playMenu.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-checked", String((play?.mode || "") === b.dataset.mode)));
+  const current = practice ? "practice" : play?.mode || "";
+  btnPlay.classList.toggle("active", Boolean(current));
+  btnPlay.querySelector(".label").textContent = practice ? "Öva" : play ? PLAY_MODES[play.mode].label : "Lek";
+  playMenu.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-checked", String(current === b.dataset.mode)));
 }
 
-const MENU = [["", "Skriv själv", "Du bestämmer bokstäverna"], ...Object.entries(PLAY_MODES).map(([k, m]) => [k, m.label, m.hint])];
+const MENU = [
+  ["", "Skriv själv", "Du bestämmer bokstäverna"],
+  ["practice", "Öva", "Hitta bokstäverna på tangentbordet"],
+  ...Object.entries(PLAY_MODES).map(([k, m]) => [k, m.label, m.hint]),
+];
 playMenu.innerHTML = MENU.map(
   ([mode, label, hint]) =>
     `<button type="button" role="menuitemradio" data-mode="${mode}"><strong>${label}</strong><span>${hint}</span></button>`
@@ -458,17 +566,36 @@ btnPlay.addEventListener("click", () => toggleMenu());
 playMenu.addEventListener("click", (e) => {
   const item = e.target.closest("[data-mode]");
   if (!item) return;
-  startPlay(item.dataset.mode);
-  store.setPrefs({ play: item.dataset.mode });
+  const mode = item.dataset.mode;
+  clearHints();
+  if (mode === "practice") {
+    play = null;
+    if (!practice) startPractice();
+  } else {
+    practice = null;
+    startPlay(mode);
+  }
+  store.setPrefs({ play: mode });
   paintPlay();
   toggleMenu(false);
+  enqueue(() => {
+    renderPaper();
+    if (practice) scheduleHints();
+  });
   sound.pop();
-  toast(play ? `${PLAY_MODES[play.mode].label}: tryck på vilka tangenter som helst!` : "Nu skriver du själv igen");
+  toast(
+    practice
+      ? "Öva: skriv bokstäverna som syns på papperet!"
+      : play
+        ? `${PLAY_MODES[play.mode].label}: tryck på vilka tangenter som helst!`
+        : "Nu skriver du själv igen"
+  );
 });
 document.addEventListener("pointerdown", (e) => {
   if (!playMenu.hidden && !playMenu.contains(e.target) && !btnPlay.contains(e.target)) toggleMenu(false);
 });
-startPlay(prefs.play);
+if (prefs.play === "practice") startPractice();
+else startPlay(prefs.play);
 paintPlay();
 
 // Audio may only start after a gesture. iOS doesn't count pointerdown/touchstart,
@@ -489,6 +616,7 @@ document.fonts.load('20px "Special Elite"').finally(() => {
   void paper.offsetWidth;
   document.body.classList.add("ready");
   movePaper(paperY(cursor.row - shownPage * ROWS), 700, "cubic-bezier(.2,.8,.25,1)");
+  if (practice) scheduleHints();
 });
 
 navigator.storage?.persist?.().catch(() => {});

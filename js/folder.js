@@ -3,7 +3,8 @@
 import * as store from "./storage.js";
 import { pagesOf } from "./layout.js";
 import { hashString } from "./ink.js";
-import { paperHTML } from "./render.js";
+import { paperHTML, pageStamps } from "./render.js";
+import { ROWS } from "./layout.js";
 import { docTitle, textFile, imageFiles, shareFiles } from "./export.js";
 import { toast } from "./toast.js";
 
@@ -83,7 +84,7 @@ export function initFolder({ onContinue, onChange }) {
         const tilt = ((seed % 7) - 3) * 0.45;
         const when = tab === "saved" ? doc.savedAt : doc.trashedAt;
         html += `<button class="card" data-id="${esc(doc.id)}">
-          <div class="thumb" style="--tilt:${tilt}deg">${paperHTML(pages[0], seed)}${pages.length > 1 ? '<div class="stack"></div>' : ""}</div>
+          <div class="thumb" style="--tilt:${tilt}deg">${paperHTML(pages[0], seed, pageStamps(doc.stamps, 0))}${pages.length > 1 ? '<div class="stack"></div>' : ""}</div>
           <div class="meta"><strong>${esc(docTitle(doc))}</strong><span>${fmtDate(when)} · ${pagesLabel(pages.length)}</span></div>
         </button>`;
       }
@@ -130,7 +131,7 @@ export function initFolder({ onContinue, onChange }) {
     const pages = pagesOf(doc.text);
     detailTitle.textContent = docTitle(doc);
     detailPages.innerHTML = pages
-      .map((p, k) => `<div class="page-wrap">${paperHTML(p, seed)}${pages.length > 1 ? `<div class="page-no">${k + 1} / ${pages.length}</div>` : ""}</div>`)
+      .map((p, k) => `<div class="page-wrap">${paperHTML(p, seed, pageStamps(doc.stamps, k), k * ROWS)}${pages.length > 1 ? `<div class="page-no">${k + 1} / ${pages.length}</div>` : ""}</div>`)
       .join("");
     detailPages.scrollTop = 0;
     detailActions.innerHTML = "";

@@ -100,7 +100,18 @@ export function buildKeyboard(root, { onChar, onBack, onReturn, caps, onCapsChan
   window.addEventListener("pointercancel", release);
   root.addEventListener("contextmenu", (e) => e.preventDefault());
 
+  let hinted = [];
   return {
+    // Practice hints: "row" glows the key's row, "key" makes the key itself glow.
+    hint(name, level) {
+      for (const el of hinted) el.classList.remove("hint-row", "hint");
+      hinted = [];
+      const key = name && byChar.get(name);
+      if (!key) return;
+      const el = level === "row" ? key.parentElement : key;
+      el.classList.add(level === "row" ? "hint-row" : "hint");
+      hinted.push(el);
+    },
     // Light up the matching on-screen key when a hardware key is pressed.
     flash(name) {
       const key = byChar.get(name) || byChar.get(String(name).toUpperCase());

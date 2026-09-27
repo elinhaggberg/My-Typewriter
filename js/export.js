@@ -1,7 +1,8 @@
 // "Save as image" / "Save as text". Files are prepared ahead of time so the
 // share sheet can open straight from the tap -- Safari refuses to share if
 // the tap was followed by slow async work.
-import { CW, LH, MX, MT, PAPER_W, PAPER_H, pagesOf } from "./layout.js";
+import { CW, LH, MX, MT, ROWS, PAPER_W, PAPER_H, pagesOf } from "./layout.js";
+import { pageStamps, stampTilt, STAMP_PATH, STAMP_SIZE } from "./render.js";
 import { hashString, ink } from "./ink.js";
 
 const FONT = '"Special Elite", "Courier New", monospace';
@@ -30,7 +31,7 @@ export function textFile(doc) {
   });
 }
 
-function drawPage(pageLines, seed, fs) {
+function drawPage(pageLines, seed, fs, stamps = [], pageStart = 0) {
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(PAPER_W * fs);
   canvas.height = Math.round(PAPER_H * fs);
@@ -63,6 +64,26 @@ function drawPage(pageLines, seed, fs) {
       c.restore();
     });
   });
+  // stamps right after each stamped line, same place and tilt as .stamp in the CSS
+  c.shadowBlur = 0;
+  const star = new Path2D(STAMP_PATH);
+  for (const row of stamps) {
+    const size = STAMP_SIZE * fs;
+    c.save();
+    c.translate((MX + (pageLines[row]?.length ?? 0) * CW + 0.45) * fs + size / 2, (MT + row * LH - 0.05) * fs + size / 2);
+    c.rotate((stampTilt(seed, pageStart + row) * Math.PI) / 180);
+    c.scale(size / 40, size / 40);
+    c.translate(-20, -20);
+    c.globalAlpha = 0.85;
+    c.fillStyle = c.strokeStyle = "#c8453a";
+    c.lineWidth = 2.4;
+    c.setLineDash([7, 1.5, 11, 1.2]);
+    c.beginPath();
+    c.arc(20, 20, 17, 0, Math.PI * 2);
+    c.stroke();
+    c.fill(star);
+    c.restore();
+  }
   return canvas;
 }
 
@@ -74,7 +95,7 @@ export async function imageFiles(doc) {
   const base = fileBase(doc);
   const files = [];
   for (let p = 0; p < pages.length; p++) {
-    const canvas = drawPage(pages[p], seed, fs);
+    const canvas = drawPage(pages[p], seed, fs, pageStamps(doc.stamps, p), p * ROWS);
     const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
     const name = pages.length > 1 ? `${base}-sida-${p + 1}.png` : `${base}.png`;
     files.push(new File([blob], name, { type: "image/png" }));
