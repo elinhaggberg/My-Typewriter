@@ -121,9 +121,95 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
   text-align: center;
 }
 
+#btn-play.active { background: #f5e2b8; }
+
+@media (max-width: 760px) {
+  #btn-preview .label { display: none; }
+  #btn-preview { padding: 10px; }
+}
 @media (max-width: 560px) {
+  .toolbar { gap: 6px; }
   .toolbar .tool .label { display: none; }
   .toolbar .tool { padding: 10px; }
+}
+
+/* ---------- play menu ---------- */
+.play-menu {
+  position: fixed;
+  z-index: 30;
+  width: 260px;
+  padding: 6px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 10px 34px rgba(41, 34, 28, .2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.play-menu[hidden] { display: none; }
+.play-menu button {
+  appearance: none;
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 11px 14px 11px 40px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  position: relative;
+}
+.play-menu button:active { background: var(--desk); }
+.play-menu strong { font: 600 16px/1.2 var(--font-ui); }
+.play-menu span { font-size: 13px; color: var(--text-dim); }
+.play-menu button[aria-checked="true"] { background: var(--desk); }
+.play-menu button[aria-checked="true"]::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--machine-deep);
+}
+
+/* ---------- preview ("Titta") ---------- */
+.preview { position: fixed; inset: 0; z-index: 45; }
+.preview[hidden] { display: none; }
+.preview-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(41, 34, 28, .55);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.preview-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(env(safe-area-inset-top) + 70px) 16px calc(env(safe-area-inset-bottom) + 40px);
+}
+.preview-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 34px;
+}
+.preview .page-wrap {
+  width: min(100%, 720px);
+  transform-origin: 0 0;
+}
+.preview .page-wrap .paper { box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+.preview .page-no { color: rgba(255, 255, 255, .75); }
+.preview-close {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 2;
 }
 
 /* ---------- stage: carriage, paper, roller ---------- */

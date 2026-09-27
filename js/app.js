@@ -7,6 +7,8 @@ import { buildKeyboard, KEYBOARD_UNITS } from "./keyboard.js";
 import { crumple } from "./crumple.js";
 import { initFolder } from "./folder.js";
 import { toast } from "./toast.js";
+import { initPreview } from "./preview.js";
+import { PLAY_MODES } from "./texts.js";
 
 const $ = (s) => document.querySelector(s);
 const stage = $("#stage");
@@ -20,6 +22,9 @@ const btnTrash = $("#btn-trash");
 const btnFolder = $("#btn-folder");
 const btnSound = $("#btn-sound");
 const btnKeyboard = $("#btn-keyboard");
+const btnPreview = $("#btn-preview");
+const btnPlay = $("#btn-play");
+const playMenu = $("#play-menu");
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -206,6 +211,7 @@ async function feedTo(page) {
 // Put a (new or restored) paper into the machine with a feed animation.
 async function loadDoc(next) {
   doc = next;
+  if (play) nextPlayText();
   seed = hashString(doc.id);
   relayout();
   flush();
@@ -218,6 +224,12 @@ async function loadDoc(next) {
   sound.feed(0.6);
   movePaper(paperY(cursor.row - shownPage * ROWS), 650, "cubic-bezier(.2,.8,.25,1)");
   await wait(650);
+}
+
+// The part of the stage where the paper shows, above the roller.
+function paperArea() {
+  const sr = stage.getBoundingClientRect();
+  return { left: sr.left, top: sr.top, right: sr.right, bottom: sr.top + geo.typeLineY + 0.2 * geo.fs };
 }
 
 function nudge(el) {
@@ -255,9 +267,7 @@ async function trashPaper() {
   const trashed = doc;
   flush();
   sound.swoosh();
-  const sr = stage.getBoundingClientRect();
-  const area = { left: sr.left, top: sr.top, right: sr.right, bottom: sr.top + geo.typeLineY + 0.2 * geo.fs };
-  await crumple({ paper, area, target: btnTrash, onSqueeze: sound.crumple, onLand: sound.toss });
+  await crumple({ paper, area: paperArea(), target: btnTrash, onSqueeze: sound.crumple, onLand: sound.toss });
   store.addTrash(trashed);
   folder.refresh();
   toast("Papperet hamnade i papperskorgen", {
@@ -311,11 +321,50 @@ const folder = initFolder({
 });
 folder.refresh();
 
+// ---------- play mode ----------
+// In play mode every key types the next letter of a ready-made text.
+let play = null; // { mode, textIndex, pos }
+
+function startPlay(mode) {
+  if (!PLAY_MODES[mode]) {
+    play = null;
+    return;
+  }
+  play = { mode, textIndex: Math.floor(Math.random() * PLAY_MODES[mode].texts.length), pos: 0 };
+}
+
+function nextPlayText() {
+  play.textIndex = (play.textIndex + 1) % PLAY_MODES[play.mode].texts.length;
+  play.pos = 0;
+}
+
+function playStep() {
+  // A blank line after each text, then the next one starts.
+  const script = PLAY_MODES[play.mode].texts[play.textIndex] + "\n\n";
+  const ch = script[play.pos++];
+  if (play.pos >= script.length) nextPlayText();
+  return ch === "\n" ? carriageReturn() : typeChar(ch);
+}
+
+const press = (ch) => enqueue(() => (play ? playStep() : typeChar(ch)));
+const pressReturn = () => enqueue(() => (play ? playStep() : carriageReturn()));
+const pressBack = () =>
+  enqueue(() => {
+    if (play && play.pos > 0 && doc.text) play.pos--;
+    return backspace();
+  });
+
+// ---------- preview ----------
+const preview = initPreview({ onOpen: () => sound.swoosh() });
+btnPreview.addEventListener("click", () =>
+  enqueue(() => preview.open({ text: doc.text, seed, page: shownPage, paper, area: paperArea() }))
+);
+
 // ---------- keyboard ----------
 const keyboard = buildKeyboard($("#keyboard"), {
-  onChar: (ch) => enqueue(() => typeChar(ch)),
-  onBack: () => enqueue(backspace),
-  onReturn: () => enqueue(carriageReturn),
+  onChar: press,
+  onBack: pressBack,
+  onReturn: pressReturn,
   caps: prefs.caps,
   onCapsChange: (caps) => store.setPrefs({ caps }),
 });
@@ -328,22 +377,25 @@ window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") folder.back();
     return;
   }
+  if (preview.isOpen()) {
+    if (e.key === "Escape") preview.close();
+    return;
+  }
   if (e.metaKey || e.ctrlKey) return;
   if (e.key === "Backspace") {
     e.preventDefault();
     keyboard.flash("back");
-    enqueue(backspace);
+    pressBack();
   } else if (e.key === "Enter") {
     e.preventDefault();
     if (e.repeat) return;
     keyboard.flash("return");
-    enqueue(carriageReturn);
+    pressReturn();
   } else if (TYPEABLE.test(e.key)) {
     e.preventDefault();
     if (e.repeat) return;
     keyboard.flash(e.key === " " ? "space" : e.key);
-    const ch = e.key;
-    enqueue(() => typeChar(ch));
+    press(e.key);
   }
 });
 
@@ -379,6 +431,45 @@ btnKeyboard.addEventListener("click", () => {
   paintKeyboard();
 });
 paintKeyboard();
+
+// ---------- play menu ----------
+function paintPlay() {
+  btnPlay.classList.toggle("active", Boolean(play));
+  btnPlay.querySelector(".label").textContent = play ? PLAY_MODES[play.mode].label : "Lek";
+  playMenu.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-checked", String((play?.mode || "") === b.dataset.mode)));
+}
+
+const MENU = [["", "Skriv själv", "Du bestämmer bokstäverna"], ...Object.entries(PLAY_MODES).map(([k, m]) => [k, m.label, m.hint])];
+playMenu.innerHTML = MENU.map(
+  ([mode, label, hint]) =>
+    `<button type="button" role="menuitemradio" data-mode="${mode}"><strong>${label}</strong><span>${hint}</span></button>`
+).join("");
+
+function toggleMenu(show = playMenu.hidden) {
+  if (show) {
+    const r = btnPlay.getBoundingClientRect();
+    playMenu.style.top = `${r.bottom + 8}px`;
+    playMenu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 268))}px`;
+  }
+  playMenu.hidden = !show;
+  btnPlay.setAttribute("aria-expanded", String(show));
+}
+btnPlay.addEventListener("click", () => toggleMenu());
+playMenu.addEventListener("click", (e) => {
+  const item = e.target.closest("[data-mode]");
+  if (!item) return;
+  startPlay(item.dataset.mode);
+  store.setPrefs({ play: item.dataset.mode });
+  paintPlay();
+  toggleMenu(false);
+  sound.pop();
+  toast(play ? `${PLAY_MODES[play.mode].label}: tryck på vilka tangenter som helst!` : "Nu skriver du själv igen");
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!playMenu.hidden && !playMenu.contains(e.target) && !btnPlay.contains(e.target)) toggleMenu(false);
+});
+startPlay(prefs.play);
+paintPlay();
 
 // Audio may only start after a gesture. iOS doesn't count pointerdown/touchstart,
 // so also unlock on touchend and click (keydown is handled above).
