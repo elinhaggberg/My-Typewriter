@@ -19,8 +19,6 @@ const LONG_WORDS = [
   "PANNKAKA", "REGNBÅGE", "ELEFANT", "DINOSAURIE", "FJÄRIL", "SNÖGUBBE", "BIBLIOTEK", "ÄVENTYR",
 ];
 
-const pick = (list) => list[Math.floor(Math.random() * list.length)];
-
 function shuffled(list) {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {
@@ -33,8 +31,15 @@ function shuffled(list) {
 // progress: { level, done } -- done = exercises finished on this level.
 export function makeExercise({ level, done }) {
   if (level <= 1) {
-    const group = LETTER_GROUPS[done % LETTER_GROUPS.length] + LETTER_GROUPS[(done + 1) % LETTER_GROUPS.length];
-    return Array.from({ length: UNITS }, () => pick([...group]).repeat(3)).join("\n");
+    // Every letter of the two groups once, in random order, before any repeats.
+    const letters = [...new Set(LETTER_GROUPS[done % LETTER_GROUPS.length] + LETTER_GROUPS[(done + 1) % LETTER_GROUPS.length])];
+    let order = [];
+    while (order.length < UNITS) {
+      let round = shuffled(letters);
+      if (round[0] === order[order.length - 1]) round.push(round.shift()); // no letter twice in a row
+      order = order.concat(round);
+    }
+    return order.slice(0, UNITS).map((ch) => ch.repeat(3)).join("\n");
   }
   const words = level === 2 ? SHORT_WORDS : LONG_WORDS;
   return shuffled(words).slice(0, level === 2 ? UNITS : 6).join("\n");
