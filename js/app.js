@@ -571,6 +571,31 @@ function paintKeyboard() {
 }
 paintKeyboard();
 
+// A hidden keyboard comes back with a tap or a swipe anywhere on the machine
+// (but not on the nameplate, which opens the settings).
+function showKeyboard() {
+  if (prefs.keyboard) return;
+  prefs.keyboard = true;
+  store.setPrefs({ keyboard: true });
+  paintKeyboard();
+  sound.pop();
+}
+let machineTouch = null;
+machine.addEventListener("pointerdown", (e) => {
+  if (!prefs.keyboard && !e.target.closest("#nameplate")) machineTouch = { y: e.clientY, id: e.pointerId };
+});
+machine.addEventListener("pointermove", (e) => {
+  if (machineTouch?.id === e.pointerId && Math.abs(e.clientY - machineTouch.y) > 24) {
+    machineTouch = null;
+    showKeyboard();
+  }
+});
+machine.addEventListener("pointerup", (e) => {
+  if (machineTouch?.id === e.pointerId) showKeyboard();
+  machineTouch = null;
+});
+machine.addEventListener("pointercancel", () => (machineTouch = null));
+
 initSettings({
   prefs,
   onChange(patch) {

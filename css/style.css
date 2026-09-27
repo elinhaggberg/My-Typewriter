@@ -689,8 +689,24 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
 #btn-stamps .chosen svg { width: 100%; height: 100%; display: block; }
 #btn-stamps.active { background: #f5e2b8; }
 
-.machine.kb-hidden { padding-top: 26px; width: min(100%, 560px); }
+.machine.kb-hidden { padding-top: 26px; width: min(100%, 560px); cursor: pointer; touch-action: none; }
 .machine.kb-hidden .keyboard { display: none; }
+.kb-handle { display: none; }
+.machine.kb-hidden .kb-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px auto 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .35);
+  color: var(--machine-deep);
+  font: 600 14px/1 var(--font-ui);
+  cursor: pointer;
+}
+.kb-handle svg { width: 22px; height: 22px; }
 
 .keyboard {
   display: flex;
