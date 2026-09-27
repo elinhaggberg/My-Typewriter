@@ -19,6 +19,15 @@ export const PLAY_MODES = {
       "RAPPORT OM FREDAGAR\n\nVi har undersökt fredagar i tre veckor. Resultatet är tydligt: fredagar är bäst.\n\nOnsdagar är lite konstiga och måndagar luktar sur gröt.\n\nDärför föreslår vi att alla dagar ska heta fredag.\n\nSkriven av Doktor Mus och hennes assistent, en stor kanelbulle.",
     ],
   },
+  research: {
+    label: "Forskare",
+    hint: "Vulkanforskarens anteckningar",
+    texts: [
+      "FORSKARDAGBOK, DAG 1\n\nIdag klättrade jag upp på vulkanen Bubbelberget. Det luktade ägg och varm korv.\n\nJag stoppade ner en termometer i lavan. Den smälte. Lavan är alltså väldigt varm.\n\nSlutsats: Ta med en längre termometer imorgon. Och en glass.",
+      "RAPPORT: VARFÖR VULKANER NYSER\n\nEn vulkan är ett berg med en het soppa inuti. Soppan heter magma.\n\nNär magman blir för kittlig nyser vulkanen. Då sprutar det ut lava, aska och ibland en förvånad get.\n\nJag rekommenderar att ingen kittlar vulkaner.\n\nUnderskrift: Vulkanforskaren",
+      "PACKLISTA TILL VULKANEN\n\n- Hjälm\n- Skyddsglasögon\n- Värmetåliga stövlar\n- En hink för lavaprover\n- Tre mackor med ost\n- En gosedjursdrake som hjälpreda\n\nOBS! Lava får INTE tas med hem i fickan. Mamma säger nej.",
+    ],
+  },
   letter: {
     label: "Brev",
     hint: "Brev till någon",
