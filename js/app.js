@@ -380,8 +380,11 @@ btnKeyboard.addEventListener("click", () => {
 });
 paintKeyboard();
 
-// Audio may only start after a gesture (iOS).
-window.addEventListener("pointerdown", () => sound.unlock(), { capture: true });
+// Audio may only start after a gesture. iOS doesn't count pointerdown/touchstart,
+// so also unlock on touchend and click (keydown is handled above).
+for (const type of ["pointerdown", "touchend", "click"]) {
+  window.addEventListener(type, () => sound.unlock(), { capture: true });
+}
 
 // ---------- boot ----------
 new ResizeObserver(() => measure()).observe(stage);

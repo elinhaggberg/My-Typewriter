@@ -1,6 +1,6 @@
 // All sounds are synthesized with Web Audio -- no audio files to download
-// or cache. iOS only allows audio after a user gesture, so unlock() is
-// called on the first tap/keypress. (The iPad's silent switch still mutes it.)
+// or cache. iOS only starts audio from a real gesture (touchend/click/keydown,
+// not pointerdown), so unlock() is called from those.
 
 let ctx = null;
 let out = null;
@@ -26,7 +26,16 @@ export function unlock() {
       const data = noise.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
     }
-    if (ctx.state !== "running") ctx.resume();
+    // Play like a media app, so the iPad's silent mode doesn't mute the typewriter.
+    if (navigator.audioSession) navigator.audioSession.type = "playback";
+    if (ctx.state !== "running") {
+      ctx.resume();
+      // Starting a (silent) sound inside the gesture is what actually wakes iOS audio.
+      const src = ctx.createBufferSource();
+      src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      src.connect(ctx.destination);
+      src.start(0);
+    }
   } catch {
     // no sound is fine
   }

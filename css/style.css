@@ -204,13 +204,15 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
   100% { scale: 1; }
 }
 
-/* The paper rest behind the sheet; it rides along with the carriage. */
+/* The paper rest behind the sheet; it stays put while the carriage moves. */
 .paper-rest {
   position: absolute;
-  left: calc(var(--knob) - 1.2em);
+  left: 50%;
   width: 28.8em;
+  margin-left: -14.4em;
+  font-size: var(--fs);
   top: calc(var(--type-line) - 7em);
-  height: 8em;
+  height: 10em; /* runs down behind the roller into the machine body */
   border-radius: 1.4em 1.4em 0 0;
   background: linear-gradient(180deg, rgba(140, 188, 171, .35), rgba(106, 159, 141, .7) 70%);
   box-shadow: inset 0 .12em 0 rgba(255, 255, 255, .5);
