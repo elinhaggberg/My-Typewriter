@@ -566,7 +566,35 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
 }
 .nameplate::before { content: ""; position: absolute; inset: -8px -10px -10px; }
 
-/* ---------- machine settings (from the nameplate) ---------- */
+/* ---------- settings openers ---------- */
+/* Wide screens (iPad landscape, computers): a gear in the top row.
+   Narrower screens: a tab sticking out of the right edge. */
+#btn-settings { display: none; }
+.side-tab {
+  position: fixed;
+  z-index: 15;
+  right: 0;
+  top: 42%;
+  width: 44px;
+  height: 56px;
+  padding: 0 0 0 6px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 16px 0 0 16px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: -2px 3px 12px rgba(41, 34, 28, .14);
+  cursor: pointer;
+}
+.side-tab svg { width: 24px; height: 24px; }
+.side-tab[aria-expanded="true"] { background: var(--desk-2); }
+@media (min-width: 1000px) {
+  #btn-settings { display: inline-flex; }
+  .side-tab { display: none; }
+}
+
+/* ---------- machine settings ---------- */
 .settings, .stamp-drawer {
   position: fixed;
   z-index: 30;
@@ -657,20 +685,24 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
 .toggle[aria-pressed="true"]::before { background: currentColor; }
 
 /* ---------- rubber stamp drawer ---------- */
-.stamp-drawer { width: 272px; display: flex; flex-direction: column; gap: 12px; }
+.stamp-drawer { width: 272px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.rubbers { flex: none; }
 .rubbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .rubbers button {
   appearance: none;
   border: 0;
-  aspect-ratio: 1;
-  padding: 14px;
+  height: 72px;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border-radius: 16px;
   background: var(--desk);
   cursor: pointer;
 }
-.rubbers button svg { display: block; width: 100%; height: 100%; opacity: .85; }
+/* Fixed pixel sizes: iPad Safari can't size an inline svg from a percentage here. */
+.rubbers button svg { display: block; width: 42px; height: 42px; opacity: .85; }
 .rubbers button[aria-pressed="true"] { background: var(--desk-2); box-shadow: inset 0 0 0 2px var(--text); }
-.inks { display: flex; justify-content: center; gap: 12px; }
+.inks { display: flex; justify-content: center; gap: 12px; flex: none; }
 .inks button {
   appearance: none;
   width: 30px;
@@ -686,7 +718,7 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
 .stamp-drawer .stop { align-self: center; }
 #btn-stamps .chosen:empty { display: none; }
 #btn-stamps .chosen { width: 22px; height: 22px; margin-left: -4px; }
-#btn-stamps .chosen svg { width: 100%; height: 100%; display: block; }
+#btn-stamps .chosen svg { width: 22px; height: 22px; display: block; }
 #btn-stamps.active { background: #f5e2b8; }
 
 .machine.kb-hidden { padding-top: 26px; width: min(100%, 560px); cursor: pointer; touch-action: none; }
@@ -1105,7 +1137,7 @@ body:not(.ready) .stage { opacity: 0; }
   justify-content: space-around;
   padding: 8% 0;
 }
-.env-postage-inner svg { width: 70%; }
+.env-postage-inner svg { width: 70%; height: auto; aspect-ratio: 1; }
 .env-postage-inner span { color: #fff; font-size: .6em; }
 .env-postmark {
   position: absolute;
@@ -1126,5 +1158,5 @@ body:not(.ready) .stage { opacity: 0; }
   line-height: 1.1;
 }
 .env-postmark.fresh { animation: stamp 420ms cubic-bezier(.2, .9, .3, 1.2) backwards; }
-.env-waves { position: absolute; right: 36%; top: 18%; width: 18%; color: rgba(55, 60, 85, .55); }
+.env-waves { position: absolute; right: 36%; top: 18%; width: 18%; height: auto; aspect-ratio: 3; color: rgba(55, 60, 85, .55); }
 .env-actions { position: relative; }

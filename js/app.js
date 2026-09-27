@@ -565,7 +565,22 @@ $("#lever").addEventListener("pointerdown", (e) => {
   enqueue(() => (practice ? practiceKey("\n") : carriageReturn()));
 });
 
-// ---------- machine settings (tap the nameplate) ----------
+// ---------- sound (top row) ----------
+const btnSound = $("#btn-sound");
+function paintSound() {
+  btnSound.setAttribute("aria-pressed", String(prefs.sound));
+  btnSound.classList.toggle("muted", !prefs.sound);
+}
+btnSound.addEventListener("click", () => {
+  prefs.sound = !prefs.sound;
+  store.setPrefs({ sound: prefs.sound });
+  sound.setEnabled(prefs.sound);
+  paintSound();
+  sound.pop();
+});
+paintSound();
+
+// ---------- machine settings (gear, side tab or nameplate) ----------
 function paintKeyboard() {
   machine.classList.toggle("kb-hidden", !prefs.keyboard);
 }
@@ -602,10 +617,6 @@ initSettings({
     Object.assign(prefs, patch);
     store.setPrefs(patch);
     if ("machineColor" in patch || "machineName" in patch) applyMachine({ color: prefs.machineColor, name: prefs.machineName });
-    if ("sound" in patch) {
-      sound.setEnabled(prefs.sound);
-      sound.pop();
-    }
     if ("keyboard" in patch) paintKeyboard();
     if ("paper" in patch) {
       // New papers use it, and so does the one in the machine.
