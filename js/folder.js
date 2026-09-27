@@ -3,10 +3,10 @@
 import * as store from "./storage.js";
 import { pagesOf } from "./layout.js";
 import { hashString } from "./ink.js";
-import { paperHTML, pageStamps } from "./render.js";
-import { ROWS } from "./layout.js";
+import { paperHTML } from "./render.js";
 import { docTitle, textFile, imageFiles, shareFiles } from "./export.js";
 import { toast } from "./toast.js";
+import { openEnvelope, closeEnvelope, envelopeOpen } from "./envelope.js";
 
 const $ = (s) => document.querySelector(s);
 const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -17,6 +17,7 @@ const ICONS = {
   image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="9" cy="10" r="1.8" fill="currentColor"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>',
   text: '<path d="M6.5 3.5h8l4 4v13h-12z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9 11h6M9 14.5h6M9 18h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>',
   trash: '<path d="M5.5 8h13l-1.2 11.2a2 2 0 0 1-2 1.8H8.7a2 2 0 0 1-2-1.8zM4 5.5h16M9.5 5.5V4h5v1.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
+  envelope: '<rect x="3" y="5.5" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>',
   restore: '<path d="M5 12a7 7 0 1 0 2.1-5M5 4v4h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 
@@ -84,7 +85,7 @@ export function initFolder({ onContinue, onChange }) {
         const tilt = ((seed % 7) - 3) * 0.45;
         const when = tab === "saved" ? doc.savedAt : doc.trashedAt;
         html += `<button class="card" data-id="${esc(doc.id)}">
-          <div class="thumb" style="--tilt:${tilt}deg">${paperHTML(pages[0], seed, pageStamps(doc.stamps, 0))}${pages.length > 1 ? '<div class="stack"></div>' : ""}</div>
+          <div class="thumb" style="--tilt:${tilt}deg">${paperHTML(pages[0], seed, doc, 0)}${pages.length > 1 ? '<div class="stack"></div>' : ""}</div>
           <div class="meta"><strong>${esc(docTitle(doc))}</strong><span>${fmtDate(when)} · ${pagesLabel(pages.length)}</span></div>
         </button>`;
       }
@@ -131,7 +132,7 @@ export function initFolder({ onContinue, onChange }) {
     const pages = pagesOf(doc.text);
     detailTitle.textContent = docTitle(doc);
     detailPages.innerHTML = pages
-      .map((p, k) => `<div class="page-wrap">${paperHTML(p, seed, pageStamps(doc.stamps, k), k * ROWS)}${pages.length > 1 ? `<div class="page-no">${k + 1} / ${pages.length}</div>` : ""}</div>`)
+      .map((p, k) => `<div class="page-wrap">${paperHTML(p, seed, doc, k)}${pages.length > 1 ? `<div class="page-no">${k + 1} / ${pages.length}</div>` : ""}</div>`)
       .join("");
     detailPages.scrollTop = 0;
     detailActions.innerHTML = "";
@@ -149,6 +150,9 @@ export function initFolder({ onContinue, onChange }) {
         image.disabled = false;
       });
       image.addEventListener("click", () => files && shareFiles(files));
+
+      const envelope = actionButton("envelope", "Skicka i kuvert");
+      envelope.addEventListener("click", () => openEnvelope(doc));
 
       const text = actionButton("text", "Spara som text");
       text.addEventListener("click", () => shareFiles([textFile(doc)]));
@@ -169,7 +173,7 @@ export function initFolder({ onContinue, onChange }) {
           },
         });
       });
-      detailActions.append(write, image, text, trash);
+      detailActions.append(write, envelope, image, text, trash);
     } else {
       const restore = actionButton("restore", "Lägg tillbaka i mappen", "primary");
       restore.addEventListener("click", () => {
@@ -212,7 +216,8 @@ export function initFolder({ onContinue, onChange }) {
     close,
     isOpen: () => !folder.hidden,
     back() {
-      if (!detail.hidden) closeDetail();
+      if (envelopeOpen()) closeEnvelope();
+      else if (!detail.hidden) closeDetail();
       else close();
     },
     refresh: renderCounts,

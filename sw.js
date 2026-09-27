@@ -1,6 +1,6 @@
 // Offline support: the whole app is precached. Bump VERSION on every
 // release so devices pick up the new files.
-const VERSION = "mt-v9";
+const VERSION = "mt-v10";
 const FILES = [
   "./",
   "index.html",
@@ -8,6 +8,8 @@ const FILES = [
   "css/style.css",
   "js/app.js",
   "js/crumple.js",
+  "js/decor.js",
+  "js/envelope.js",
   "js/export.js",
   "js/folder.js",
   "js/ink.js",
@@ -17,7 +19,9 @@ const FILES = [
   "js/texts.js",
   "js/layout.js",
   "js/render.js",
+  "js/settings.js",
   "js/sound.js",
+  "js/stampdrawer.js",
   "js/storage.js",
   "js/toast.js",
   "fonts/special-elite-latin-400-normal.woff2",

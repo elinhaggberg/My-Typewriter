@@ -15,6 +15,7 @@
   --machine-hi: #b2d6c9;
   --machine-lo: #6a9f8d;
   --machine-deep: #467566;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --key: #fbf6ea;
   --key-rim: #2b2522;
   --roller: #2d2724;
@@ -28,6 +29,13 @@
   --font-type: "Special Elite", "Courier New", monospace;
   --u: 56px;
 }
+
+/* Machine colours (chosen by tapping the nameplate). */
+:root[data-machine="tomato"] { --machine: #e0877a; --machine-hi: #f0b0a6; --machine-lo: #c4675a; --machine-deep: #9a4438; }
+:root[data-machine="sky"] { --machine: #8fb3d6; --machine-hi: #b9d0e8; --machine-lo: #6d93bb; --machine-deep: #46688f; }
+:root[data-machine="mustard"] { --machine: #d9b45f; --machine-hi: #ecd28f; --machine-lo: #bb9540; --machine-deep: #8a6a24; }
+:root[data-machine="lavender"] { --machine: #b3a3d4; --machine-hi: #d2c7e8; --machine-lo: #9282b8; --machine-deep: #625390; }
+:root[data-machine="graphite"] { --machine: #7a746f; --machine-hi: #9d9791; --machine-lo: #5e5955; --machine-deep: #3b3734; }
 
 * { box-sizing: border-box; }
 
@@ -301,11 +309,63 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
   background-color: var(--paper);
   background-image:
     linear-gradient(90deg, rgba(120, 100, 60, .05), transparent 6%, transparent 94%, rgba(120, 100, 60, .05)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    var(--grain);
   box-shadow: 0 1px 2px rgba(41, 34, 28, .08), 0 6px 20px rgba(41, 34, 28, .1);
   will-change: transform;
 }
 .carriage .paper { left: var(--knob); }
+
+/* Paper types (see drawPaperType in js/decor.js for the exported image).
+   Lines are 1.5em apart, just under each typed line's letters
+   (line n at 2.2em + (n+1) * 1.5em - .4em). At least 1px so they survive thumbnails. */
+.paper[data-paper="lined"] {
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 calc(1.5em - max(1px, .06em)), rgba(80, 120, 170, .3) calc(1.5em - max(1px, .06em)) 1.5em),
+    linear-gradient(90deg, transparent 1.9em, rgba(220, 80, 70, .4) 1.9em calc(1.9em + max(1px, .08em)), transparent calc(1.9em + max(1px, .08em))),
+    var(--grain);
+  background-position: 0 .3em, 0 0, 0 0;
+}
+.paper[data-paper="grid"] {
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 calc(.75em - max(1px, .04em)), rgba(80, 120, 170, .2) calc(.75em - max(1px, .04em)) .75em),
+    repeating-linear-gradient(90deg, transparent 0 calc(.75em - max(1px, .04em)), rgba(80, 120, 170, .2) calc(.75em - max(1px, .04em)) .75em),
+    var(--grain);
+  background-position: 0 .3em, .15em 0, 0 0;
+}
+.paper[data-paper="old"] {
+  background-color: #f3e4c2;
+  background-image:
+    radial-gradient(ellipse at center, rgba(150, 110, 50, 0) 45%, rgba(150, 110, 50, .28) 100%),
+    var(--grain);
+}
+
+/* Rubber stamps and the date stamp sit on the whole sheet. */
+.paper .rubber {
+  position: absolute;
+  width: 3.4em;
+  height: 3.4em;
+  margin: -1.7em 0 0 -1.7em;
+  opacity: .85;
+  transform: rotate(var(--tilt, 0deg));
+  pointer-events: none;
+}
+.paper .rubber svg { display: block; width: 100%; height: 100%; }
+.paper .rubber.fresh { animation: stamp 380ms cubic-bezier(.2, .9, .3, 1.2) backwards; }
+.paper .date-stamp {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  color: #3b5ea8;
+  border: .08em solid currentColor;
+  outline: .04em solid currentColor;
+  outline-offset: -.2em;
+  opacity: .85;
+  transform: rotate(var(--tilt, 0deg));
+  pointer-events: none;
+}
+.paper .date-stamp span { font: .78em/1 var(--font-type); padding-top: .06em; }
+.paper .date-stamp.fresh { animation: stamp 420ms cubic-bezier(.2, .9, .3, 1.2) backwards; }
+.stage.stamping .paper { cursor: crosshair; }
 
 .page {
   position: absolute;
@@ -376,7 +436,7 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
   top: calc(var(--type-line) - 7em);
   height: 10em; /* runs down behind the roller into the machine body */
   border-radius: 1.4em 1.4em 0 0;
-  background: linear-gradient(180deg, rgba(140, 188, 171, .35), rgba(106, 159, 141, .7) 70%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--machine) 35%, transparent), color-mix(in srgb, var(--machine-lo) 70%, transparent) 70%);
   box-shadow: inset 0 .12em 0 rgba(255, 255, 255, .5);
 }
 
@@ -498,7 +558,136 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
   text-transform: uppercase;
   color: #6d6a63;
   white-space: nowrap;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  /* a bigger invisible tap area around the small plate */
+  outline-offset: 2px;
 }
+.nameplate::before { content: ""; position: absolute; inset: -8px -10px -10px; }
+
+/* ---------- machine settings (from the nameplate) ---------- */
+.settings, .stamp-drawer {
+  position: fixed;
+  z-index: 30;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 10px 34px rgba(41, 34, 28, .22);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.settings[hidden], .stamp-drawer[hidden] { display: none; }
+.settings { display: flex; flex-direction: column; gap: 14px; }
+.set-row { display: flex; flex-direction: column; gap: 8px; }
+.set-label { font: 600 12px/1 var(--font-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); }
+.settings input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e3d7b8);
+  border-radius: 12px;
+  background: #fff;
+  font: 16px/1.2 var(--font-type);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatches button {
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  background: var(--c);
+  box-shadow: 0 0 0 1px rgba(41, 34, 28, .15);
+  cursor: pointer;
+}
+.swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--text); }
+.paper-picks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.paper-picks button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 4px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font: 600 12px/1 var(--font-ui);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.paper-picks .paper {
+  position: relative;
+  display: block;
+  width: 46px;
+  height: 58px;
+  font-size: 4px; /* the paper patterns are in em */
+  box-shadow: 0 1px 4px rgba(41, 34, 28, .18);
+}
+.paper-picks button[aria-pressed="true"] { background: var(--desk); color: var(--text); }
+.toggles { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+.toggle {
+  appearance: none;
+  border: 0;
+  padding: 9px 14px 9px 34px;
+  border-radius: 999px;
+  background: var(--desk-2);
+  font: 600 14px/1 var(--font-ui);
+  color: var(--text-dim);
+  position: relative;
+  cursor: pointer;
+}
+.toggle::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+.toggle[aria-pressed="true"] { background: var(--machine-deep); color: #fff; }
+.toggle[aria-pressed="true"]::before { background: currentColor; }
+
+/* ---------- rubber stamp drawer ---------- */
+.stamp-drawer { width: 272px; display: flex; flex-direction: column; gap: 12px; }
+.rubbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rubbers button {
+  appearance: none;
+  border: 0;
+  aspect-ratio: 1;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--desk);
+  cursor: pointer;
+}
+.rubbers button svg { display: block; width: 100%; height: 100%; opacity: .85; }
+.rubbers button[aria-pressed="true"] { background: var(--desk-2); box-shadow: inset 0 0 0 2px var(--text); }
+.inks { display: flex; justify-content: center; gap: 12px; }
+.inks button {
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  background: var(--c);
+  box-shadow: 0 0 0 1px rgba(41, 34, 28, .15);
+  cursor: pointer;
+}
+.inks button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--text); }
+.stamp-drawer .hint { margin: 0; text-align: center; font-size: 13px; color: var(--text-dim); }
+.stamp-drawer .stop { align-self: center; }
+#btn-stamps .chosen:empty { display: none; }
+#btn-stamps .chosen { width: 22px; height: 22px; margin-left: -4px; }
+#btn-stamps .chosen svg { width: 100%; height: 100%; display: block; }
+#btn-stamps.active { background: #f5e2b8; }
 
 .machine.kb-hidden { padding-top: 26px; width: min(100%, 560px); }
 .machine.kb-hidden .keyboard { display: none; }
@@ -773,3 +962,153 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
 /* Fade the machine in once the font is ready so letters never jump. */
 body:not(.ready) .stage { opacity: 0; }
 .stage { transition: opacity 200ms ease; }
+
+/* ---------- envelope ("Skicka i kuvert") ---------- */
+.envelope-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: calc(env(safe-area-inset-top) + 60px) 16px calc(env(safe-area-inset-bottom) + 24px);
+  opacity: 0;
+  transition: opacity 220ms ease;
+  --ew: min(88vw, 460px, calc((100vh - 240px) / 1.6));
+}
+.envelope-sheet[hidden] { display: none; }
+.envelope-sheet.open { opacity: 1; }
+.env-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(41, 34, 28, .6);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.env-close { position: fixed; top: calc(env(safe-area-inset-top) + 12px); right: max(14px, env(safe-area-inset-right)); z-index: 2; }
+.env-scene { position: relative; padding-top: calc(var(--ew) * .9); }
+.env {
+  position: relative;
+  width: var(--ew);
+  height: calc(var(--ew) * .625);
+}
+.env-back, .env-front { position: absolute; inset: 0; }
+.env-back[hidden], .env-front[hidden] { display: none; }
+.env-inside {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: #e2d3b1;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+}
+.env-letter {
+  position: absolute;
+  left: 13%;
+  width: 74%;
+  top: 7%;
+  container-type: inline-size;
+  aspect-ratio: 26.4 / 37.7;
+  transform-origin: 50% 0;
+}
+.env-letter .paper { font-size: calc(100cqw / 26.4); box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+.env-pocket {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(170deg, #f4ead3, #eadcb9);
+  clip-path: polygon(0 0, 50% 58%, 100% 0, 100% 100%, 0 100%);
+}
+.env-pocket::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top right, transparent 49.6%, rgba(120, 90, 40, .18) 50%, transparent 50.4%),
+    linear-gradient(to top left, transparent 49.6%, rgba(120, 90, 40, .18) 50%, transparent 50.4%);
+}
+.env-flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 62%;
+  background: linear-gradient(180deg, #efe2c4, #e6d6b0);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: 50% 0;
+  transform: scaleY(-1);
+  z-index: 0;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .15));
+}
+.env-letter { z-index: 1; }
+.env-pocket { z-index: 2; }
+.env-flap.closed { z-index: 3; }
+.env-front {
+  border-radius: 6px;
+  background: radial-gradient(ellipse at center, #f4ead3 55%, #eadcb9 100%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+  font-family: var(--font-type);
+  color: var(--ink);
+  font-size: calc(var(--ew) / 24);
+}
+.env-front input {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid rgba(42, 35, 32, .3);
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  padding: .1em 0;
+  min-width: 0;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.env-front input:focus { outline: none; border-bottom-color: var(--machine-deep); }
+.env-from { position: absolute; left: 5%; top: 7%; width: 44%; display: flex; gap: .4em; align-items: baseline; font-size: .8em; }
+.env-from input { flex: 1; }
+.env-to { position: absolute; left: 26%; right: 8%; top: 58%; display: flex; flex-direction: column; gap: .2em; }
+.env-to input { font-size: 1.6em; width: 100%; }
+.env-postage {
+  position: absolute;
+  right: 5%;
+  top: 7%;
+  width: 12%;
+  aspect-ratio: 19 / 23;
+  padding: 3%;
+  background: #fffdf7;
+  border: .35em dotted #f4ead3;
+  box-sizing: content-box;
+}
+.env-postage-inner {
+  height: 100%;
+  background: var(--machine);
+  color: var(--machine-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8% 0;
+}
+.env-postage-inner svg { width: 70%; }
+.env-postage-inner span { color: #fff; font-size: .6em; }
+.env-postmark {
+  position: absolute;
+  right: 20%;
+  top: 14%;
+  width: 16%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: .2em solid rgba(55, 60, 85, .7);
+  outline: .08em solid rgba(55, 60, 85, .7);
+  outline-offset: -.4em;
+  display: grid;
+  place-items: center;
+  transform: rotate(-12deg);
+  color: rgba(55, 60, 85, .8);
+  font-size: .55em;
+  text-align: center;
+  line-height: 1.1;
+}
+.env-postmark.fresh { animation: stamp 420ms cubic-bezier(.2, .9, .3, 1.2) backwards; }
+.env-waves { position: absolute; right: 36%; top: 18%; width: 18%; color: rgba(55, 60, 85, .55); }
+.env-actions { position: relative; }

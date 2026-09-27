@@ -1,5 +1,6 @@
 import { ink } from "./ink.js";
-import { ROWS } from "./layout.js";
+import { ROWS, PAPER_W } from "./layout.js";
+import { rubberSVG, dateStampText, DATE_STAMP, INKS } from "./decor.js";
 
 const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
@@ -15,10 +16,27 @@ export function pageStamps(stamps = [], page) {
   return stamps.filter((r) => Math.floor(r / ROWS) === page).map((r) => r % ROWS);
 }
 
-// HTML for one page of lines (the inside of a .paper element).
+export const dateTilt = (seed) => ink(seed, 200000).r * 1.2;
+
+// Everything that sits on page `page` of a document besides its letters.
+export function docPageOpts(doc, page) {
+  return {
+    stamps: pageStamps(doc.stamps, page),
+    pageStart: page * ROWS,
+    art: (doc.art || []).filter((a) => (a.p || 0) === page),
+    date: page === 0 ? doc.dateStamp : null,
+  };
+}
+
+// HTML for one page (the inside of a .paper element).
 // ghostFrom: characters from this index on are shown as faint practice letters.
 // stamps: rows within the page that get a stamp just after the line's last letter.
-export function pageHTML(pageLines, seed, { strikeIndex = -1, ghostFrom = Infinity, stamps = [], freshStamp = -1, pageStart = 0 } = {}) {
+// art: rubber stamps ({ k, ink, x, y, r } in paper em); date: ISO date for the date stamp.
+export function pageHTML(
+  pageLines,
+  seed,
+  { strikeIndex = -1, ghostFrom = Infinity, stamps = [], freshStamp = -1, pageStart = 0, art = [], freshArt = null, date = null, freshDate = false } = {}
+) {
   let html = '<div class="page">';
   for (const line of pageLines) {
     html += '<div class="ln">';
@@ -42,9 +60,20 @@ export function pageHTML(pageLines, seed, { strikeIndex = -1, ghostFrom = Infini
     const cls = row === freshStamp ? "stamp fresh" : "stamp";
     html += `<span class="${cls}" style="--row:${row};--col:${pageLines[row]?.length ?? 0};--tilt:${stampTilt(seed, pageStart + row).toFixed(1)}deg">${STAMP_SVG}</span>`;
   }
-  return html + "</div>";
+  html += "</div>";
+  // Rubber stamps and the date stamp are placed on the whole sheet, not the text area.
+  for (const a of art) {
+    const cls = a === freshArt ? "rubber fresh" : "rubber";
+    html += `<span class="${cls}" style="left:${a.x.toFixed(2)}em;top:${a.y.toFixed(2)}em;--tilt:${(a.r || 0).toFixed(1)}deg;color:${INKS[a.ink] || INKS.red}">${rubberSVG(a.k)}</span>`;
+  }
+  if (date) {
+    const { w, h, right, top } = DATE_STAMP;
+    html += `<span class="date-stamp${freshDate ? " fresh" : ""}" style="left:${PAPER_W - right - w}em;top:${top}em;width:${w}em;height:${h}em;--tilt:${dateTilt(seed).toFixed(1)}deg"><span>${dateStampText(date)}</span></span>`;
+  }
+  return html;
 }
 
-export function paperHTML(pageLines, seed, stamps = [], pageStart = 0) {
-  return `<div class="paper">${pageHTML(pageLines, seed, { stamps, pageStart })}</div>`;
+// A whole sheet: paper type plus everything on page `page` of `doc`.
+export function paperHTML(pageLines, seed, doc = {}, page = 0) {
+  return `<div class="paper" data-paper="${doc.paper || "plain"}">${pageHTML(pageLines, seed, docPageOpts(doc, page))}</div>`;
 }

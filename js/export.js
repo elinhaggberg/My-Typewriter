@@ -1,8 +1,9 @@
 // "Save as image" / "Save as text". Files are prepared ahead of time so the
 // share sheet can open straight from the tap -- Safari refuses to share if
 // the tap was followed by slow async work.
-import { CW, LH, MX, MT, ROWS, PAPER_W, PAPER_H, pagesOf } from "./layout.js";
-import { pageStamps, stampTilt, STAMP_PATH, STAMP_SIZE } from "./render.js";
+import { CW, LH, MX, MT, PAPER_W, PAPER_H, pagesOf } from "./layout.js";
+import { docPageOpts, stampTilt, dateTilt, STAMP_PATH, STAMP_SIZE } from "./render.js";
+import { drawPaperType, drawRubber, drawDateStamp } from "./decor.js";
 import { hashString, ink } from "./ink.js";
 
 const FONT = '"Special Elite", "Courier New", monospace';
@@ -31,15 +32,14 @@ export function textFile(doc) {
   });
 }
 
-function drawPage(pageLines, seed, fs, stamps = [], pageStart = 0) {
+function drawPage(pageLines, seed, fs, paperType, { stamps, pageStart, art, date }) {
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(PAPER_W * fs);
   canvas.height = Math.round(PAPER_H * fs);
   const c = canvas.getContext("2d");
 
-  // paper with a faint grain
-  c.fillStyle = "#fffdf7";
-  c.fillRect(0, 0, canvas.width, canvas.height);
+  // paper (plain, lined, squared or old) with a faint grain
+  drawPaperType(c, paperType, canvas.width, canvas.height, fs);
   for (let k = 0; k < canvas.width * canvas.height * 0.002; k++) {
     c.fillStyle = `rgba(120,100,60,${(Math.random() * 0.05).toFixed(3)})`;
     c.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1.5, 1.5);
@@ -84,6 +84,8 @@ function drawPage(pageLines, seed, fs, stamps = [], pageStart = 0) {
     c.fill(star);
     c.restore();
   }
+  for (const a of art) drawRubber(c, a, fs);
+  if (date) drawDateStamp(c, date, PAPER_W, fs, dateTilt(seed));
   return canvas;
 }
 
@@ -95,7 +97,7 @@ export async function imageFiles(doc) {
   const base = fileBase(doc);
   const files = [];
   for (let p = 0; p < pages.length; p++) {
-    const canvas = drawPage(pages[p], seed, fs, pageStamps(doc.stamps, p), p * ROWS);
+    const canvas = drawPage(pages[p], seed, fs, doc.paper || "plain", docPageOpts(doc, p));
     const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
     const name = pages.length > 1 ? `${base}-sida-${p + 1}.png` : `${base}.png`;
     files.push(new File([blob], name, { type: "image/png" }));

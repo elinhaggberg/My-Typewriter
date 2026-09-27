@@ -1,8 +1,7 @@
 // "Titta": the paper zooms up out of the typewriter so the whole thing can be
 // read (and scrolled, if it has several pages), then zooms back down again.
 import { pagesOf } from "./layout.js";
-import { paperHTML, pageStamps } from "./render.js";
-import { ROWS } from "./layout.js";
+import { paperHTML } from "./render.js";
 
 const EASE = "cubic-bezier(.2,.8,.25,1)";
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -46,13 +45,13 @@ export function initPreview({ onOpen, onClose }) {
     };
   }
 
-  async function open({ text, seed, stamps, page, paper, area }) {
+  async function open({ doc, seed, page, paper, area }) {
     if (state || busy) return;
     busy = true;
-    const pages = pagesOf(text);
+    const pages = pagesOf(doc.text);
     const idx = Math.min(page, pages.length - 1);
     pagesEl.innerHTML = pages
-      .map((p, k) => `<div class="page-wrap">${paperHTML(p, seed, pageStamps(stamps, k), k * ROWS)}${pages.length > 1 ? `<div class="page-no">${k + 1} / ${pages.length}</div>` : ""}</div>`)
+      .map((p, k) => `<div class="page-wrap">${paperHTML(p, seed, doc, k)}${pages.length > 1 ? `<div class="page-no">${k + 1} / ${pages.length}</div>` : ""}</div>`)
       .join("");
     root.hidden = false;
     const wraps = [...pagesEl.children];

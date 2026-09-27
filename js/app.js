@@ -1,7 +1,10 @@
 import * as store from "./storage.js";
-import { COLS, ROWS, BELL_AT, CW, LH, MX, MT, PAPER_H, layout, cursorOf, pageOf } from "./layout.js";
+import { COLS, ROWS, BELL_AT, CW, LH, MX, MT, PAPER_W, PAPER_H, layout, cursorOf, pageOf } from "./layout.js";
 import { hashString } from "./ink.js";
-import { pageHTML, pageStamps } from "./render.js";
+import { pageHTML, docPageOpts } from "./render.js";
+import { initSettings, applyMachine } from "./settings.js";
+import { initStampDrawer } from "./stampdrawer.js";
+import { RUBBER_SIZE } from "./decor.js";
 import * as sound from "./sound.js";
 import { buildKeyboard, KEYBOARD_UNITS } from "./keyboard.js";
 import { crumple } from "./crumple.js";
@@ -21,8 +24,6 @@ const machine = $("#machine");
 const btnSave = $("#btn-save");
 const btnTrash = $("#btn-trash");
 const btnFolder = $("#btn-folder");
-const btnSound = $("#btn-sound");
-const btnKeyboard = $("#btn-keyboard");
 const btnPreview = $("#btn-preview");
 const btnPlay = $("#btn-play");
 const playMenu = $("#play-menu");
@@ -32,6 +33,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // ---------- state ----------
 let prefs = store.getPrefs();
 let doc = store.loadCurrent() || store.newDoc();
+if (!doc.text && !doc.paper) doc.paper = prefs.paper;
+applyMachine({ color: prefs.machineColor, name: prefs.machineName });
 let seed = hashString(doc.id);
 let length = [...doc.text].length;
 let lines = layout(doc.text);
@@ -101,16 +104,19 @@ function place(msX = 70, msY = 160) {
 }
 
 // ---------- rendering ----------
-function renderPaper(strikeIndex = -1, freshStamp = -1) {
+// fresh: { art, date } -- a rubber stamp or the date stamp that just landed.
+function renderPaper(strikeIndex = -1, freshStamp = -1, fresh = {}) {
   const start = shownPage * ROWS;
   // In practice mode the page shows the whole exercise, with the untyped part as ghost letters.
   const src = practice ? practice.lines : lines;
+  paper.dataset.paper = doc.paper || "plain";
   paper.innerHTML = pageHTML(src.slice(start, start + ROWS), seed, {
+    ...docPageOpts(doc, shownPage),
     strikeIndex,
     ghostFrom: practice ? length : Infinity,
-    stamps: pageStamps(doc.stamps, shownPage),
     freshStamp: freshStamp >= 0 ? freshStamp - start : -1,
-    pageStart: start,
+    freshArt: fresh.art || null,
+    freshDate: Boolean(fresh.date),
   });
   const pages = Math.max(pageOf(cursor.row), pageOf(lines.length - 1)) + 1;
   pageTag.hidden = pages < 2;
@@ -139,6 +145,7 @@ function enqueue(fn) {
 
 // ---------- typing ----------
 function typeChar(ch) {
+  stampedLast = false;
   const before = cursor;
   doc.text += ch;
   relayout();
@@ -159,6 +166,7 @@ function typeChar(ch) {
 }
 
 function carriageReturn() {
+  stampedLast = false;
   const fromCol = cursor.col;
   doc.text += "\n";
   relayout();
@@ -223,6 +231,8 @@ async function feedTo(page) {
 // Put a (new or restored) paper into the machine with a feed animation.
 async function loadDoc(next) {
   doc = next;
+  if (!doc.text && !doc.paper) doc.paper = prefs.paper;
+  stampedLast = false;
   if (play) nextPlayText();
   if (practice) startPractice();
   seed = hashString(doc.id);
@@ -259,6 +269,19 @@ async function savePaper() {
     sound.thunk();
     return;
   }
+  // Roll back to the top of page one and stamp today's date in the corner.
+  if (shownPage !== 0) {
+    shownPage = 0;
+    renderPaper();
+  }
+  sound.feed(0.35);
+  moveCarriage(COLS - 6, 380, "cubic-bezier(.45,0,.2,1)");
+  movePaper(Math.max(8, geo.typeLineY - (MT + 5 * LH) * geo.fs), 420);
+  await wait(460);
+  doc.dateStamp = new Date().toISOString();
+  renderPaper(-1, -1, { date: true });
+  setTimeout(() => sound.rubber(), 120);
+  await wait(750);
   flush();
   sound.swoosh();
   moveCarriage(Math.round(COLS / 2), 300, "ease-in-out");
@@ -465,6 +488,15 @@ const press = (ch) => enqueue(() => route(ch));
 const pressReturn = () => enqueue(() => route("\n"));
 const pressBack = () =>
   enqueue(() => {
+    // Right after stamping, backspace lifts the last rubber stamp off again.
+    if (stampedLast && doc.art?.length) {
+      doc.art = doc.art.slice(0, -1);
+      stampedLast = doc.art.length > 0;
+      persist();
+      renderPaper();
+      sound.back();
+      return;
+    }
     if (play && play.pos > 0 && doc.text) play.pos--;
     backspace();
     if (practice) scheduleHints();
@@ -473,7 +505,7 @@ const pressBack = () =>
 // ---------- preview ----------
 const preview = initPreview({ onOpen: () => sound.swoosh() });
 btnPreview.addEventListener("click", () =>
-  enqueue(() => preview.open({ text: doc.text, seed, stamps: doc.stamps, page: shownPage, paper, area: paperArea() }))
+  enqueue(() => preview.open({ doc, seed, page: shownPage, paper, area: paperArea() }))
 );
 
 // ---------- keyboard ----------
@@ -493,6 +525,7 @@ const TYPEABLE = /^[\x20-\x7E¡-ÿ–—‘’“”…€]$/;
 
 window.addEventListener("keydown", (e) => {
   sound.unlock();
+  if (e.target.closest?.("input, textarea")) return; // typing a name, not on the paper
   if (folder.isOpen()) {
     if (e.key === "Escape") folder.back();
     return;
@@ -532,29 +565,71 @@ $("#lever").addEventListener("pointerdown", (e) => {
   enqueue(() => (practice ? practiceKey("\n") : carriageReturn()));
 });
 
-function paintSound() {
-  btnSound.setAttribute("aria-pressed", String(prefs.sound));
-  btnSound.classList.toggle("muted", !prefs.sound);
-}
-btnSound.addEventListener("click", () => {
-  prefs.sound = !prefs.sound;
-  store.setPrefs({ sound: prefs.sound });
-  sound.setEnabled(prefs.sound);
-  paintSound();
-  sound.pop();
-});
-paintSound();
-
+// ---------- machine settings (tap the nameplate) ----------
 function paintKeyboard() {
   machine.classList.toggle("kb-hidden", !prefs.keyboard);
-  btnKeyboard.setAttribute("aria-pressed", String(prefs.keyboard));
 }
-btnKeyboard.addEventListener("click", () => {
-  prefs.keyboard = !prefs.keyboard;
-  store.setPrefs({ keyboard: prefs.keyboard });
-  paintKeyboard();
-});
 paintKeyboard();
+
+initSettings({
+  prefs,
+  onChange(patch) {
+    Object.assign(prefs, patch);
+    store.setPrefs(patch);
+    if ("machineColor" in patch || "machineName" in patch) applyMachine({ color: prefs.machineColor, name: prefs.machineName });
+    if ("sound" in patch) {
+      sound.setEnabled(prefs.sound);
+      sound.pop();
+    }
+    if ("keyboard" in patch) paintKeyboard();
+    if ("paper" in patch) {
+      // New papers use it, and so does the one in the machine.
+      doc.paper = patch.paper;
+      persist();
+      renderPaper();
+    }
+  },
+});
+
+// ---------- rubber stamps ----------
+let stamper = null; // { k, ink } while stamping
+let stampedLast = false; // backspace lifts the last stamp right after stamping
+const drawer = initStampDrawer({
+  onPick(pick) {
+    const first = !stamper;
+    stamper = pick;
+    stage.classList.add("stamping");
+    if (first) toast("Tryck på papperet för att stämpla!");
+  },
+  onStop() {
+    stamper = null;
+    stage.classList.remove("stamping");
+  },
+});
+
+stage.addEventListener("pointerdown", (e) => {
+  if (!stamper || !e.target.closest("#paper")) return;
+  const sr = stage.getBoundingClientRect();
+  if (e.clientY > sr.top + geo.typeLineY + 0.15 * geo.fs) return; // behind the roller
+  e.preventDefault();
+  const pr = paper.getBoundingClientRect();
+  const half = RUBBER_SIZE / 2;
+  const art = {
+    k: stamper.k,
+    ink: stamper.ink,
+    p: shownPage,
+    x: Math.max(half, Math.min(PAPER_W - half, (e.clientX - pr.left) / geo.fs)),
+    y: Math.max(half, Math.min(PAPER_H - half, (e.clientY - pr.top) / geo.fs)),
+    r: Math.round((Math.random() - 0.5) * 24),
+  };
+  enqueue(() => {
+    doc.art = [...(doc.art || []), art];
+    stampedLast = true;
+    persist();
+    renderPaper(-1, -1, { art });
+    setTimeout(() => sound.rubber(), 60);
+  });
+});
 
 // ---------- play menu ----------
 // Level buttons over the paper, only in practice mode.

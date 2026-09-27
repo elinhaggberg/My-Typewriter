@@ -195,3 +195,12 @@ export function cheer() {
   const t = ctx.currentTime + 0.35;
   [1047, 1319, 1568, 2093].forEach((f, k) => tone(t + k * 0.1, { freq: f, dur: 0.5, gain: 0.1, attack: 0.005 }));
 }
+
+// A rubber stamp (or the date stamp) pressed onto the paper.
+export function rubber() {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  tone(t, { freq: 140, freqEnd: 90, dur: 0.09, gain: 0.16, type: "sine" });
+  burst(t, { dur: 0.06, freq: 700, q: 0.7, gain: 0.16, attack: 0.004 });
+  burst(t + 0.02, { dur: 0.05, freq: 2500, q: 1, gain: 0.05 });
+}
