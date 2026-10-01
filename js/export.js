@@ -3,7 +3,7 @@
 // the tap was followed by slow async work.
 import { CW, LH, MX, MT, PAPER_W, PAPER_H, pagesOf } from "./layout.js";
 import { docPageOpts, stampTilt, dateTilt, STAMP_PATH, STAMP_SIZE } from "./render.js";
-import { drawPaperType, drawRubber, drawDateStamp } from "./decor.js";
+import { drawPaperType, drawRubber, drawDateStamp, isPicture, inkPicture, PICTURE_SCALE } from "./decor.js";
 import { hashString, ink } from "./ink.js";
 
 const FONT = '"Special Elite", "Courier New", monospace';
@@ -59,8 +59,13 @@ function drawPage(pageLines, seed, fs, paperType, { stamps, pageStart, art, date
       c.translate((MX + (col + 0.5) * CW + j.x) * fs, cy + j.y * fs);
       c.rotate((j.r * Math.PI) / 180);
       c.globalAlpha = j.a;
-      c.fillStyle = "#2a2320";
-      c.fillText(ch, 0, 0);
+      if (isPicture(ch)) {
+        const pic = inkPicture(ch, Math.round(fs * PICTURE_SCALE));
+        c.drawImage(pic, -pic.width / 2, -pic.height / 2);
+      } else {
+        c.fillStyle = "#2a2320";
+        c.fillText(ch, 0, 0);
+      }
       c.restore();
     });
   });

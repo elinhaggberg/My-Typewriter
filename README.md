@@ -13,6 +13,7 @@ Plain HTML/CSS/JS with no build step. It's a PWA, so it works offline and everyt
 - **Settings** (the gear in the top row on wide screens, a tab on the right edge on narrower ones, or tap the nameplate): the machine's name (shown on the plate), colour, paper type (plain, lined, squared, old) and the on-screen keyboard. A hidden keyboard also comes back with a tap or swipe on the machine.
 - **Stämpla**: a drawer of rubber stamps (volcano, star, heart, sun, cat, flower) in four inks. Pick one and tap the paper; backspace right after lifts the last stamp off again.
 - **Spara** rolls the paper back to the top and stamps the date in the corner before it goes into the folder.
+- **Emoji keys** on a physical keyboard (made for the Logitech POP Keys): on an iPad they only arrive as a lone Control press, so each press prints the next of a set of small pictures (😀 ⭐ 🌋 🐱 🌞 …) in typewriter ink. `keytest.html` shows what a keyboard actually sends.
 - In the folder: *Skriv vidare* (continue writing), *Skicka i kuvert* (the letter folds into an envelope; write who it's to and share the envelope and the pages as images), *Spara som bild* (one PNG per page) and *Spara som text* (.txt). On iPad these open the share sheet: Save Image, Save to Files, AirDrop…
 
 ## Good to know

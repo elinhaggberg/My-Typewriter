@@ -1,6 +1,6 @@
 import { ink } from "./ink.js";
 import { ROWS, PAPER_W } from "./layout.js";
-import { rubberSVG, dateStampText, DATE_STAMP, INKS } from "./decor.js";
+import { rubberSVG, dateStampText, DATE_STAMP, INKS, isPicture } from "./decor.js";
 
 const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
@@ -51,7 +51,7 @@ export function pageHTML(
         continue;
       }
       const j = ink(seed, i);
-      const cls = i === strikeIndex ? "c strike" : "c";
+      const cls = (isPicture(ch) ? "c pic" : "c") + (i === strikeIndex ? " strike" : "");
       html += `<span class="${cls}" style="--r:${j.r};--x:${j.x};--y:${j.y};--a:${j.a}">${ESC[ch] || ch}</span>`;
     }
     html += "</div>";

@@ -124,3 +124,41 @@ export function drawDateStamp(c, iso, paperW, fs, tilt) {
   c.fillText(dateStampText(iso), 0, 0.04 * fs);
   c.restore();
 }
+
+// ---------- ink pictures (the keyboard's emoji keys) ----------
+// The emoji keys on a Logitech POP keyboard only reach an iPad as a lone
+// Control press, so we can't tell which one was pressed. Each press prints the
+// next of these instead, in typewriter ink. Single code points only, so every
+// picture takes exactly one character cell.
+export const INK_PICTURES = ["😀", "⭐", "🌋", "🐱", "🌞", "😂", "🌸", "🚀", "💖", "🦄", "🍦"];
+export const isPicture = (ch) => /\p{Extended_Pictographic}/u.test(ch);
+export const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+export const PICTURE_SCALE = 0.62; // of the paper's font size; keep in sync with .c.pic in the CSS
+
+// An emoji redrawn as typewriter ink: dark lines stay strong, light areas fade.
+// (Done by hand because Safari has no canvas filters.)
+const inkCache = new Map();
+export function inkPicture(ch, px) {
+  const key = `${ch}@${px}`;
+  if (inkCache.has(key)) return inkCache.get(key);
+  const size = Math.ceil(px * 1.4);
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = size;
+  const c = cv.getContext("2d");
+  c.font = `${px}px ${EMOJI_FONT}`;
+  c.textAlign = "center";
+  c.textBaseline = "middle";
+  c.fillText(ch, size / 2, size / 2);
+  const img = c.getImageData(0, 0, size, size);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const lum = (0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]) / 255;
+    d[i + 3] = d[i + 3] * (1 - lum * 0.78);
+    d[i] = 42;
+    d[i + 1] = 35;
+    d[i + 2] = 32;
+  }
+  c.putImageData(img, 0, 0);
+  inkCache.set(key, cv);
+  return cv;
+}

@@ -391,6 +391,19 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
 }
 .c.strike { animation: strike 150ms ease-out; }
 
+/* Ink pictures (from the keyboard's emoji keys): emoji printed in typewriter
+   ink. Sized to one character cell; see inkPicture() in js/decor.js for the image export. */
+.c.pic {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: calc(.9em * .62 / .9);
+  width: calc(.6em / .62);
+  height: calc(1.5em / .62);
+  line-height: calc(1.5em / .62);
+  filter: grayscale(1) sepia(.3) contrast(1.6) brightness(.62);
+  mix-blend-mode: multiply;
+  text-shadow: none;
+}
+
 /* Practice ("Öva"): faint letters to type over, the next one underlined. */
 .c.ghost {
   opacity: 1;
