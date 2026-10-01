@@ -4,7 +4,7 @@ import { hashString } from "./ink.js";
 import { pageHTML, docPageOpts } from "./render.js";
 import { initSettings, applyMachine } from "./settings.js";
 import { initStampDrawer } from "./stampdrawer.js";
-import { RUBBER_SIZE, INK_PICTURES } from "./decor.js";
+import { RUBBER_SIZE } from "./decor.js";
 import * as sound from "./sound.js";
 import { buildKeyboard, KEYBOARD_UNITS } from "./keyboard.js";
 import { crumple } from "./crumple.js";
@@ -535,35 +535,9 @@ const keyboard = buildKeyboard($("#keyboard"), {
 
 const TYPEABLE = /^[\x20-\x7E¡-ÿ–—‘’“”…€]$/;
 
-// ---------- ink pictures from the keyboard's emoji keys ----------
-// On an iPad, the emoji keys of a Logitech POP keyboard arrive only as a lone
-// Control press (the system swallows the rest), so a Control press that isn't
-// followed by another key within a moment prints the next ink picture.
-let pictureTimer = null;
-let lastPictureAt = 0;
-let pictureIndex = Math.floor(Math.random() * INK_PICTURES.length);
-
-function watchForPicture(e) {
-  if (e.key === "Control") {
-    if (e.repeat || e.metaKey || e.altKey || pictureTimer) return;
-    pictureTimer = setTimeout(() => {
-      pictureTimer = null;
-      if (practice || Date.now() - lastPictureAt < 400) return; // one key press can send several Controls
-      lastPictureAt = Date.now();
-      const pic = INK_PICTURES[pictureIndex++ % INK_PICTURES.length];
-      lastInput = "hw";
-      enqueue(() => typeChar(pic));
-    }, 220);
-  } else if (!["Shift", "Alt", "Meta"].includes(e.key)) {
-    clearTimeout(pictureTimer); // a real shortcut like Ctrl+C
-    pictureTimer = null;
-  }
-}
-
 window.addEventListener("keydown", (e) => {
   sound.unlock();
   if (e.target.closest?.("input, textarea")) return; // typing a name, not on the paper
-  if (!folder.isOpen() && !preview.isOpen()) watchForPicture(e);
   if (folder.isOpen()) {
     if (e.key === "Escape") folder.back();
     return;

@@ -1,6 +1,6 @@
 // Offline support: the whole app is precached. Bump VERSION on every
 // release so devices pick up the new files.
-const VERSION = "mt-v14";
+const VERSION = "mt-v15";
 const FILES = [
   "./",
   "index.html",

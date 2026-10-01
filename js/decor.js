@@ -125,12 +125,9 @@ export function drawDateStamp(c, iso, paperW, fs, tilt) {
   c.restore();
 }
 
-// ---------- ink pictures (the keyboard's emoji keys) ----------
-// The emoji keys on a Logitech POP keyboard only reach an iPad as a lone
-// Control press, so we can't tell which one was pressed. Each press prints the
-// next of these instead, in typewriter ink. Single code points only, so every
-// picture takes exactly one character cell.
-export const INK_PICTURES = ["😀", "⭐", "🌋", "🐱", "🌞", "😂", "🌸", "🚀", "💖", "🦄", "🍦"];
+// ---------- ink pictures ----------
+// Papers from when the Control key printed little emoji pictures still have
+// them; they keep rendering in typewriter ink. Nothing new adds them.
 export const isPicture = (ch) => /\p{Extended_Pictographic}/u.test(ch);
 export const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 export const PICTURE_SCALE = 0.62; // of the paper's font size; keep in sync with .c.pic in the CSS
