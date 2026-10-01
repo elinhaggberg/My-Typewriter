@@ -12,6 +12,7 @@ import { initFolder } from "./folder.js";
 import { toast } from "./toast.js";
 import { initPreview } from "./preview.js";
 import { PLAY_MODES } from "./texts.js";
+import { showResultCard, resultCardOpen, closeResultCard } from "./celebrate.js";
 import { makeExercise, finishExercise, newLetters, LEVELS } from "./practice.js";
 
 const $ = (s) => document.querySelector(s);
@@ -409,6 +410,7 @@ function startPractice() {
 }
 
 function setLevel(level) {
+  stopTrial();
   prefs.practice = { ...prefs.practice, level, done: 0 };
   store.setPrefs({ practice: prefs.practice });
   clearHints();
@@ -458,6 +460,10 @@ function practiceKey(k) {
 }
 
 function stampWord() {
+  if (trial?.phase === "running") {
+    trial.count++;
+    paintClockCount();
+  }
   const row = lines.length - 1; // the line the last letter landed on
   doc.stamps = [...(doc.stamps || []).filter((r) => r !== row), row];
   persist();
@@ -466,6 +472,11 @@ function stampWord() {
 }
 
 function finishPractice() {
+  if (trial) {
+    // In a time trial the level stays put: just keep the words coming.
+    setPracticeTarget(after(practice.chars.join(""), makeExercise(prefs.practice)));
+    return;
+  }
   const { progress, levelUp } = finishExercise(prefs.practice);
   prefs.practice = progress;
   store.setPrefs({ practice: progress });
@@ -479,6 +490,7 @@ function finishPractice() {
 }
 
 function route(k) {
+  if (trial?.phase === "countdown") return; // wait for "Kör!"
   if (practice) return practiceKey(k);
   if (play) return playStep();
   return k === "\n" ? carriageReturn() : typeChar(k);
@@ -558,6 +570,11 @@ window.addEventListener("keydown", (e) => {
   }
   if (preview.isOpen()) {
     if (e.key === "Escape") preview.close();
+    return;
+  }
+  if (resultCardOpen()) {
+    e.preventDefault();
+    if (e.key === "Escape") closeResultCard();
     return;
   }
   if (e.metaKey || e.ctrlKey) return;
@@ -694,12 +711,115 @@ stage.addEventListener("pointerdown", (e) => {
 });
 
 // ---------- play menu ----------
+// ---------- time trial ("Tidtävling") ----------
+// One minute on the current level: as many stamps (finished words) as possible.
+const TRIAL_SECONDS = 60;
+const clockEl = $("#trial-clock");
+let trial = null; // { phase: "countdown" | "running", count, level, timer, endsAt, shown }
+
+function showClock(text, { big = false, urgent = false } = {}) {
+  clockEl.hidden = false;
+  clockEl.classList.toggle("big", big);
+  clockEl.classList.toggle("urgent", urgent);
+  clockEl.querySelector(".t").textContent = text;
+  paintClockCount();
+}
+
+function paintClockCount() {
+  const n = clockEl.querySelector(".n");
+  n.hidden = !trial || trial.phase !== "running";
+  n.textContent = trial ? trial.count : "";
+}
+
+async function startTrial() {
+  if (!practice) return;
+  stopTrial();
+  closeResultCard();
+  clearHints();
+  trial = { phase: "countdown", count: 0, level: prefs.practice.level ?? 1, timer: null };
+  startPractice(); // a fresh exercise after what's on the paper
+  renderPaper();
+  paintLevels();
+  // The machine rolls down to the first word itself, so the minute is all words.
+  const run = trial;
+  while (practice && trial === run && practice.chars[length] === "\n") await carriageReturn();
+  if (trial !== run) return;
+  let n = 3;
+  showClock(String(n), { big: true });
+  sound.tick();
+  trial.timer = setInterval(() => {
+    n -= 1;
+    if (n > 0) {
+      showClock(String(n), { big: true });
+      sound.tick();
+      return;
+    }
+    clearInterval(trial.timer);
+    trial.phase = "running";
+    trial.endsAt = Date.now() + TRIAL_SECONDS * 1000;
+    showClock("Kör!", { big: true });
+    sound.tick(true);
+    scheduleHints();
+    trial.timer = setInterval(updateClock, 200);
+  }, 800);
+}
+
+function updateClock() {
+  const left = Math.max(0, Math.ceil((trial.endsAt - Date.now()) / 1000));
+  if (left !== trial.shown) {
+    trial.shown = left;
+    showClock(`0:${String(left).padStart(2, "0")}`, { urgent: left <= 10 });
+    if (left > 0 && left <= 5) sound.tick();
+  }
+  if (left === 0) endTrial();
+}
+
+function endTrial() {
+  const { count, level } = trial;
+  stopTrial();
+  const records = prefs.records || {};
+  const best = records[level] || 0;
+  const isRecord = count > 0 && count > best;
+  if (isRecord) {
+    prefs.records = { ...records, [level]: count };
+    store.setPrefs({ records: prefs.records });
+    sound.fanfare();
+  } else {
+    sound.cheer();
+  }
+  showResultCard({
+    levelLabel: LEVELS[level],
+    count,
+    best,
+    isRecord,
+    onAgain: () => enqueue(startTrial),
+    onDone: () => practice && scheduleHints(),
+  });
+}
+
+function stopTrial() {
+  if (!trial) return;
+  clearInterval(trial.timer);
+  trial = null;
+  clearHints();
+  clockEl.hidden = true;
+  paintLevels();
+}
+
 // Level buttons over the paper, only in practice mode.
 const levelsEl = $("#levels");
-levelsEl.innerHTML = Object.entries(LEVELS)
-  .map(([n, label]) => `<button type="button" data-level="${n}"><b>${n}</b><span>${label}</span></button>`)
-  .join("");
+levelsEl.innerHTML =
+  Object.entries(LEVELS)
+    .map(([n, label]) => `<button type="button" data-level="${n}"><b>${n}</b><span>${label}</span></button>`)
+    .join("") +
+  `<button type="button" class="trial-btn" data-trial aria-label="Tidtävling, en minut">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 13.5V9.5M10 3h4M18.5 6.5l1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+    <span>1 min</span></button>`;
 levelsEl.addEventListener("click", (e) => {
+  if (e.target.closest("[data-trial]")) {
+    if (practice) enqueue(() => (trial ? stopTrial() : startTrial()));
+    return;
+  }
   const b = e.target.closest("[data-level]");
   if (b && practice) enqueue(() => setLevel(Number(b.dataset.level)));
 });
@@ -707,6 +827,9 @@ function paintLevels() {
   levelsEl.hidden = !practice;
   const level = prefs.practice?.level ?? 1;
   levelsEl.querySelectorAll("[data-level]").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.level) === level)));
+  const trialBtn = levelsEl.querySelector("[data-trial]");
+  trialBtn.setAttribute("aria-pressed", String(Boolean(trial)));
+  trialBtn.querySelector("span").textContent = trial ? "Avbryt" : "1 min";
 }
 
 function paintPlay() {
@@ -762,6 +885,7 @@ playMenu.addEventListener("click", (e) => {
       }
     }
   } else {
+    stopTrial();
     practice = null;
     startPlay(mode);
   }

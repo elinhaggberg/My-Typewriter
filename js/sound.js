@@ -204,3 +204,26 @@ export function rubber() {
   burst(t, { dur: 0.06, freq: 700, q: 0.7, gain: 0.16, attack: 0.004 });
   burst(t + 0.02, { dur: 0.05, freq: 2500, q: 1, gain: 0.05 });
 }
+
+// Time trial: a tick for the countdown and the last seconds.
+export function tick(high = false) {
+  if (!ready()) return;
+  const t = ctx.currentTime;
+  tone(t, { freq: high ? 1320 : 880, dur: high ? 0.35 : 0.09, gain: 0.12, attack: 0.003 });
+}
+
+// A new record: a little fanfare.
+export function fanfare() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.1;
+  const notes = [
+    [523, 0, 0.14], [659, 0.15, 0.14], [784, 0.3, 0.14], [1047, 0.45, 0.5],
+    [784, 0.72, 0.12], [1047, 0.86, 0.9],
+  ];
+  for (const [f, at, dur] of notes) {
+    tone(t + at, { freq: f, dur: dur + 0.15, gain: 0.1, type: "triangle", attack: 0.01 });
+    tone(t + at, { freq: f * 2, dur: dur, gain: 0.03, attack: 0.01 });
+  }
+  // final chord
+  for (const f of [523, 659, 784]) tone(t + 0.86, { freq: f, dur: 1.1, gain: 0.05, type: "triangle", attack: 0.02 });
+}

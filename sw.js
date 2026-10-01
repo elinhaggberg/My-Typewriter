@@ -1,12 +1,13 @@
 // Offline support: the whole app is precached. Bump VERSION on every
 // release so devices pick up the new files.
-const VERSION = "mt-v13";
+const VERSION = "mt-v14";
 const FILES = [
   "./",
   "index.html",
   "manifest.webmanifest",
   "css/style.css",
   "js/app.js",
+  "js/celebrate.js",
   "js/crumple.js",
   "js/decor.js",
   "js/envelope.js",
