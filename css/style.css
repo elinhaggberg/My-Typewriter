@@ -602,7 +602,10 @@ button:focus-visible { outline: 2px solid var(--machine-deep); outline-offset: 3
 }
 .side-tab svg { width: 24px; height: 24px; }
 .side-tab[aria-expanded="true"] { background: var(--desk-2); }
+#btn-trial { display: none; }
+#btn-trial.active { background: #f5e2b8; }
 @media (min-width: 1000px) {
+  #btn-trial { display: inline-flex; }
   #btn-settings { display: inline-flex; }
   .side-tab { display: none; }
 }
@@ -1266,3 +1269,35 @@ body:not(.ready) .stage { opacity: 0; }
 }
 .result-actions { display: flex; justify-content: center; gap: 10px; margin-top: 22px; font-family: var(--font-ui); }
 .confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 75; pointer-events: none; }
+
+/* "Tävla" level picker (same card as the result) */
+.result-card.picker { width: min(92vw, 400px); }
+.picker-title { margin-top: 10px; font-size: 20px; line-height: 1.3; }
+.picker-levels { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; font-family: var(--font-ui); }
+.picker-levels button {
+  appearance: none;
+  border: 2px solid transparent;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 10px 10px;
+  border-radius: 14px;
+  background: rgba(233, 222, 196, .55);
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+.picker-levels b {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--desk-2);
+  font-size: 15px;
+}
+.picker-levels span { font-weight: 600; font-size: 16px; }
+.picker-levels small { font-size: 13px; color: var(--text-dim); }
+.picker-levels button[aria-checked="true"] { border-color: var(--machine-deep); background: var(--surface); }
+.picker-levels button[aria-checked="true"] b { background: var(--machine-deep); color: #fff; }

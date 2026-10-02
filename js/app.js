@@ -12,7 +12,7 @@ import { initFolder } from "./folder.js";
 import { toast } from "./toast.js";
 import { initPreview } from "./preview.js";
 import { PLAY_MODES } from "./texts.js";
-import { showResultCard, resultCardOpen, closeResultCard } from "./celebrate.js";
+import { showResultCard, showTrialPicker, resultCardOpen, closeResultCard } from "./celebrate.js";
 import { makeExercise, finishExercise, newLetters, LEVELS } from "./practice.js";
 
 const $ = (s) => document.querySelector(s);
@@ -786,6 +786,24 @@ function stopTrial() {
   paintLevels();
 }
 
+// "Tävla" in the top row (wide screens): pick a level, then straight into a time trial.
+$("#btn-trial").addEventListener("click", () => {
+  if (trial) return enqueue(stopTrial);
+  showTrialPicker({
+    levels: LEVELS,
+    records: prefs.records || {},
+    level: prefs.practice?.level ?? 1,
+    onStart(level) {
+      const stashed = enterPractice();
+      prefs.practice = { ...prefs.practice, level };
+      store.setPrefs({ practice: prefs.practice });
+      paintPlay();
+      if (stashed) toast("Ditt papper ligger i mappen.");
+      enqueue(startTrial);
+    },
+  });
+});
+
 // Level buttons over the paper, only in practice mode.
 const levelsEl = $("#levels");
 levelsEl.innerHTML =
@@ -807,6 +825,9 @@ function paintLevels() {
   levelsEl.hidden = !practice;
   const level = prefs.practice?.level ?? 1;
   levelsEl.querySelectorAll("[data-level]").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.level) === level)));
+  const topTrial = $("#btn-trial");
+  topTrial.classList.toggle("active", Boolean(trial));
+  topTrial.querySelector(".label").textContent = trial ? "Avbryt" : "Tävla";
   const trialBtn = levelsEl.querySelector("[data-trial]");
   trialBtn.setAttribute("aria-pressed", String(Boolean(trial)));
   trialBtn.querySelector("span").textContent = trial ? "Avbryt" : "1 min";
@@ -840,6 +861,26 @@ function toggleMenu(show = playMenu.hidden) {
   btnPlay.setAttribute("aria-expanded", String(show));
 }
 btnPlay.addEventListener("click", () => toggleMenu());
+// Switch to Öva. Practice starts on a fresh paper: if the one in the machine
+// has something on it, it goes to the folder. Returns whether it did.
+function enterPractice() {
+  play = null;
+  if (practice) return false;
+  startPractice();
+  store.setPrefs({ play: "practice" });
+  if (!hasContent()) return false;
+  flush();
+  store.addSaved(doc);
+  folder.refresh();
+  enqueue(async () => {
+    sound.swoosh();
+    movePaper(offTop(), 420, "ease-in");
+    await wait(440);
+    await loadDoc(store.newDoc());
+  });
+  return true;
+}
+
 playMenu.addEventListener("click", (e) => {
   const item = e.target.closest("[data-mode]");
   if (!item) return;
@@ -847,23 +888,7 @@ playMenu.addEventListener("click", (e) => {
   clearHints();
   let stashed = false;
   if (mode === "practice") {
-    play = null;
-    if (!practice) {
-      startPractice();
-      if (hasContent()) {
-        // Practice starts on a fresh paper; the one in the machine goes to the folder.
-        stashed = true;
-        flush();
-        store.addSaved(doc);
-        folder.refresh();
-        enqueue(async () => {
-          sound.swoosh();
-          movePaper(offTop(), 420, "ease-in");
-          await wait(440);
-          await loadDoc(store.newDoc());
-        });
-      }
-    }
+    stashed = enterPractice();
   } else {
     stopTrial();
     practice = null;

@@ -41,6 +41,48 @@ export function showResultCard({ levelLabel, count, best, isRecord, onAgain, onD
   if (isRecord) confetti();
 }
 
+// "Tävla": choose a level (with its record) and start.
+export function showTrialPicker({ levels, records, level, onStart }) {
+  closeResultCard();
+  card = document.createElement("div");
+  card.className = "result";
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-modal", "true");
+  card.setAttribute("aria-label", "Tävla");
+  let chosen = level;
+  card.innerHTML = `
+    <div class="result-backdrop" data-act="close"></div>
+    <div class="result-card picker">
+      <div class="result-kicker">Tidtävling</div>
+      <div class="picker-title">En minut – hur många stämplar hinner du?</div>
+      <div class="picker-levels" role="radiogroup" aria-label="Nivå">${Object.entries(levels)
+        .map(
+          ([n, label]) => `<button type="button" role="radio" data-level="${n}" aria-checked="${Number(n) === chosen}">
+            <b>${n}</b><span>${label}</span><small>${records[n] ? `Rekord: ${records[n]}` : "Inget rekord än"}</small>
+          </button>`
+        )
+        .join("")}</div>
+      <div class="result-actions">
+        <button type="button" class="tool" data-act="close">Avbryt</button>
+        <button type="button" class="tool primary" data-act="start">Starta!</button>
+      </div>
+    </div>`;
+  document.body.append(card);
+  requestAnimationFrame(() => card.classList.add("open"));
+  card.addEventListener("click", (e) => {
+    const lv = e.target.closest("[data-level]");
+    if (lv) {
+      chosen = Number(lv.dataset.level);
+      card.querySelectorAll("[data-level]").forEach((b) => b.setAttribute("aria-checked", String(b === lv)));
+      return;
+    }
+    const act = e.target.closest("[data-act]")?.dataset.act;
+    if (!act) return;
+    closeResultCard();
+    if (act === "start") onStart(chosen);
+  });
+}
+
 export function closeResultCard() {
   if (!card) return;
   const old = card;
