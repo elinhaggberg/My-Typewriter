@@ -816,7 +816,7 @@ function paintPlay() {
   paintLevels();
   const current = practice ? "practice" : play?.mode || "";
   btnPlay.classList.toggle("active", Boolean(current));
-  btnPlay.querySelector(".label").textContent = practice ? "Öva" : play ? PLAY_MODES[play.mode].label : "Lek";
+  btnPlay.querySelector(".label").textContent = practice ? "Öva" : play ? PLAY_MODES[play.mode].label : "Läge";
   playMenu.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-checked", String(current === b.dataset.mode)));
 }
 
