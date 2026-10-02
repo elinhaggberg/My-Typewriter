@@ -691,7 +691,7 @@ stage.addEventListener("pointerdown", (e) => {
 });
 
 // ---------- play menu ----------
-// ---------- time trial ("Tidtävling") ----------
+// ---------- time trial ("Skriv på tid") ----------
 // One minute on the current level: as many stamps (finished words) as possible.
 const TRIAL_SECONDS = 60;
 const clockEl = $("#trial-clock");
@@ -810,7 +810,7 @@ levelsEl.innerHTML =
   Object.entries(LEVELS)
     .map(([n, label]) => `<button type="button" data-level="${n}"><b>${n}</b><span>${label}</span></button>`)
     .join("") +
-  `<button type="button" class="trial-btn" data-trial aria-label="Tidtävling, en minut">
+  `<button type="button" class="trial-btn" data-trial aria-label="Skriv på tid, en minut">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 13.5V9.5M10 3h4M18.5 6.5l1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
     <span>1 min</span></button>`;
 levelsEl.addEventListener("click", (e) => {

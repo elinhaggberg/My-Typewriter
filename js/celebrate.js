@@ -17,7 +17,7 @@ export function showResultCard({ levelLabel, count, best, isRecord, onAgain, onD
   card.innerHTML = `
     <div class="result-backdrop"></div>
     <div class="result-card${isRecord ? " record" : ""}">
-      <div class="result-kicker">Tidtävling · ${levelLabel}</div>
+      <div class="result-kicker">Skriv på tid · ${levelLabel}</div>
       <div class="result-stamp" aria-hidden="true"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-dasharray="7 1.5 11 1.2"/><path d="M20 8.5l3.4 7.2 7.8.9-5.8 5.3 1.6 7.7L20 25.6l-7 4 1.6-7.7-5.8-5.3 7.8-.9z" fill="currentColor"/></svg></div>
       <div class="result-count">${count}</div>
       <div class="result-unit">${word} på en minut</div>
@@ -53,7 +53,7 @@ export function showTrialPicker({ levels, records, level, onStart }) {
   card.innerHTML = `
     <div class="result-backdrop" data-act="close"></div>
     <div class="result-card picker">
-      <div class="result-kicker">Tidtävling</div>
+      <div class="result-kicker">Skriv på tid</div>
       <div class="picker-title">En minut – hur många stämplar hinner du?</div>
       <div class="picker-levels" role="radiogroup" aria-label="Nivå">${Object.entries(levels)
         .map(
