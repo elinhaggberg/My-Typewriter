@@ -419,7 +419,7 @@ function setLevel(level) {
   paintLevels();
   sound.pop();
   toast(level === 1 ? `Bokstäver: ${newLetters(prefs.practice)}` : LEVELS[level]);
-  scheduleHints();
+  return rollToNextWord(200).then(() => practice && scheduleHints());
 }
 
 const keyName = (ch) => (ch === "\n" ? "return" : ch === " " ? "space" : ch.toUpperCase());
@@ -437,10 +437,19 @@ function scheduleHints() {
   hintTimers = [setTimeout(() => keyboard.hint(key, "row"), 2500), setTimeout(() => keyboard.hint(key, "key"), 5000)];
 }
 
-function practiceKey(k) {
+// In practice the machine does the carriage returns itself: as soon as a word
+// is done it rolls on to the next one, so she only types letters.
+async function rollToNextWord(pause = 0) {
+  if (!practice || practice.chars[length] !== "\n") return;
+  if (pause) await wait(pause);
+  while (practice && practice.chars[length] === "\n") await carriageReturn();
+}
+
+async function practiceKey(k) {
   const expected = practice.chars[length];
-  const ok = expected === "\n" ? k === "\n" : k !== "\n" && k.toUpperCase() === expected.toUpperCase();
-  if (!ok) {
+  if (expected === "\n") return rollToNextWord(); // a return left over: just roll on
+  if (k === "\n") return; // return isn't needed in practice
+  if (k.toUpperCase() !== expected.toUpperCase()) {
     sound.thunk();
     if (++wrongs >= 2 && lastInput === "screen") keyboard.hint(keyName(expected), "key");
     return;
@@ -448,15 +457,12 @@ function practiceKey(k) {
   wrongs = 0;
   clearHints();
   const next = practice.chars[length + 1];
-  let result;
-  if (expected === "\n") {
-    result = carriageReturn();
-  } else {
-    result = typeChar(expected);
-    if (expected !== " " && (next === "\n" || next === undefined)) stampWord();
-  }
+  await typeChar(expected);
+  const wordDone = expected !== " " && (next === "\n" || next === undefined);
+  if (wordDone) stampWord();
   if (length >= practice.chars.length) finishPractice();
-  return Promise.resolve(result).then(() => practice && scheduleHints());
+  if (wordDone) await rollToNextWord(380); // let the stamp land first
+  if (practice) scheduleHints();
 }
 
 function stampWord() {
@@ -716,7 +722,7 @@ async function startTrial() {
   paintLevels();
   // The machine rolls down to the first word itself, so the minute is all words.
   const run = trial;
-  while (practice && trial === run && practice.chars[length] === "\n") await carriageReturn();
+  await rollToNextWord();
   if (trial !== run) return;
   let n = 3;
   showClock(String(n), { big: true });
@@ -906,7 +912,7 @@ document.fonts.load('20px "Special Elite"').finally(() => {
   void paper.offsetWidth;
   document.body.classList.add("ready");
   movePaper(paperY(cursor.row - shownPage * ROWS), 700, "cubic-bezier(.2,.8,.25,1)");
-  if (practice) scheduleHints();
+  if (practice) enqueue(() => rollToNextWord(700).then(() => practice && scheduleHints()));
 });
 
 navigator.storage?.persist?.().catch(() => {});
